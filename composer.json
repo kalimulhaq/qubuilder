@@ -1,0 +1,66 @@
+{
+    "name": "kalimulhaq/qubuilder",
+    "description": "A Laravel package that converts structured JSON filter arrays into Eloquent query builder chains — enabling dynamic filtering, sorting, pagination, and eager loading via API requests.",
+    "keywords": [
+        "laravel",
+        "eloquent",
+        "query-builder",
+        "filter",
+        "api",
+        "kalimulhaq",
+        "qubuilder"
+    ],
+    "homepage": "https://github.com/kalimulhaq/qubuilder",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Kalim ul Haq",
+            "email": "kalim.dir@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^11.0|^12.0",
+        "illuminate/database": "^11.0|^12.0",
+        "illuminate/http": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpunit/phpunit": "^11.3"
+    },
+    "suggest": {
+        "illuminate/foundation": "Required to use the GetCollectionRequest and GetResourceRequest form request base classes."
+    },
+    "autoload": {
+        "psr-4": {
+            "Kalimulhaq\\Qubuilder\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Kalimulhaq\\Qubuilder\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kalimulhaq\\Qubuilder\\QubuilderServiceProvider"
+            ],
+            "aliases": {
+                "Qubuilder": "Kalimulhaq\\Qubuilder\\Support\\Facades\\Qubuilder"
+            }
+        }
+    }
+}
