@@ -2,6 +2,14 @@
 
 All notable changes to `qubuilder` will be documented in this file.
 
+## [1.1.0] — 2026-04-07
+
+### Added
+- Laravel 13 compatibility
+- Extended `illuminate/*` constraints to `^13.0`
+- Extended `orchestra/testbench` dev constraint to `^11.0`
+- CI matrix now tests against Laravel 11, 12, and 13
+
 ## [1.0.0] — 2026-04-07
 
 ### Added
