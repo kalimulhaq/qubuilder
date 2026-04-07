@@ -2,7 +2,7 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
 [![Total Downloads](https://img.shields.io/packagist/dt/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
-![GitHub Actions](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml/badge.svg)
+![GitHub Actions](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml/badge.svg?branch=main)
 
 A Laravel package that converts structured JSON filter arrays into Eloquent query builder chains. Pass `select`, `filter`, `include`, `sort`, `group`, `page`, and `limit` parameters — from an HTTP request or a plain array — and get back a fully-built `Builder` instance ready to paginate or execute.
 
