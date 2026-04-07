@@ -3,8 +3,6 @@
 namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
@@ -16,11 +14,6 @@ use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
  * raw expressions, relationship existence, and multi-column operators.
  * Piped operators (`op|subOp`) allow a secondary operator to be passed alongside
  * the primary one (e.g. `has|>=`, `field|>`, `any|_like_`).
- *
- * Polymorphic (`MorphTo`) relations are detected automatically. When a `has` or
- * `doesnthave` filter targets a MorphTo relation, `whereHasMorph('*', ...)` is used
- * and morph types that lack the queried sub-relation are silently excluded via
- * `WHERE 0=1`, avoiding errors when only some morph types support the relation.
  */
 class WhereClause
 {
@@ -87,222 +80,71 @@ class WhereClause
      */
     public function build(Builder $builder): Builder
     {
+
         $fieldsArr = Arr::wrap($this->field);
         $valuesArr = Arr::wrap($this->value);
 
         return match ($this->op) {
-            'any'              => $builder->{$this->where('Any')}($fieldsArr, $this->subOp, $this->value),
-            'all'              => $builder->{$this->where('All')}($fieldsArr, $this->subOp, $this->value),
-            'none'             => $builder->{$this->where('None')}($fieldsArr, $this->subOp, $this->value),
-            'in'               => $builder->{$this->where('In')}($this->field, $valuesArr),
-            'not_in'           => $builder->{$this->where('NotIn')}($this->field, $valuesArr),
-            'between'          => $builder->{$this->where('Between')}($this->field, $valuesArr),
-            'not_between'      => $builder->{$this->where('NotBetween')}($this->field, $valuesArr),
-            'null'             => $builder->{$this->where('Null')}($this->field),
-            'not_null'         => $builder->{$this->where('NotNull')}($this->field),
-            'date'             => $builder->{$this->where('Date')}($this->field, $this->value),
-            'year'             => $builder->{$this->where('Year')}($this->field, $this->value),
-            'month'            => $builder->{$this->where('Month')}($this->field, $this->value),
-            'day'              => $builder->{$this->where('Day')}($this->field, $this->value),
-            'time'             => $builder->{$this->where('Time')}($this->field, $this->value),
-            'has'              => $this->whereHas($builder),
-            'doesnthave'       => $this->whereDoesntHave($builder),
-            'json_contains'    => $builder->{$this->where('JsonContains')}($this->field, $this->value),
+            'any' => $builder->{$this->where('Any')}($fieldsArr, $this->subOp, $this->value),
+            'all' => $builder->{$this->where('All')}($fieldsArr, $this->subOp, $this->value),
+            'none' => $builder->{$this->where('None')}($fieldsArr, $this->subOp, $this->value),
+            'in' => $builder->{$this->where('In')}($this->field, $valuesArr),
+            'not_in' => $builder->{$this->where('NotIn')}($this->field, $valuesArr),
+            'between' => $builder->{$this->where('Between')}($this->field, $valuesArr),
+            'not_between' => $builder->{$this->where('NotBetween')}($this->field, $valuesArr),
+            'null' => $builder->{$this->where('Null')}($this->field),
+            'not_null' => $builder->{$this->where('NotNull')}($this->field),
+            'date' => $builder->{$this->where('Date')}($this->field, $this->value),
+            'year' => $builder->{$this->where('Year')}($this->field, $this->value),
+            'month' => $builder->{$this->where('Month')}($this->field, $this->value),
+            'day' => $builder->{$this->where('Day')}($this->field, $this->value),
+            'time' => $builder->{$this->where('Time')}($this->field, $this->value),
+            'has' => $this->whereHas($builder),
+            'doesnthave' => $this->whereDoesntHave($builder),
+            'json_contains' => $builder->{$this->where('JsonContains')}($this->field, $this->value),
             'json_not_contains' => $builder->{$this->where('JsonDoesntContain')}($this->field, $this->value),
-            '_like'            => $builder->{$this->where()}($this->field, 'like', '%'.$this->value),
-            'like_'            => $builder->{$this->where()}($this->field, 'like', $this->value.'%'),
-            '_like_'           => $builder->{$this->where()}($this->field, 'like', '%'.$this->value.'%'),
-            'raw'              => $builder->{$this->whereRaw()}($this->field, $this->value),
-            'field'            => $builder->{$this->whereColumn()}($this->field, $this->subOp, $this->value),
-            default            => $builder->{$this->where()}($this->field, $this->op, $this->value),
-        };
-    }
-
-    private function whereHas(Builder $builder): Builder
-    {
-        if (is_iterable($this->value) && $this->isMorphToRelation($builder)) {
-            return $this->applyAutoMorphQuery($builder, false);
-        }
-
-        $or = $this->conjunction === 'OR';
-
-        if (is_iterable($this->value)) {
-            $method = $or ? 'orWhereHas' : 'whereHas';
-
-            return $builder->{$method}($this->field, fn (Builder $sub) => Qubuilder::make(['filter' => $this->value], $sub)->query());
-        }
-
-        $method = $or ? 'orHas' : 'has';
-
-        return $builder->{$method}($this->field, $this->subOp, (int) $this->value);
-    }
-
-    private function whereDoesntHave(Builder $builder): Builder
-    {
-        if (is_iterable($this->value) && $this->isMorphToRelation($builder)) {
-            return $this->applyAutoMorphQuery($builder, true);
-        }
-
-        $or = $this->conjunction === 'OR';
-
-        if (is_iterable($this->value)) {
-            $method = $or ? 'orWhereDoesntHave' : 'whereDoesntHave';
-
-            return $builder->{$method}($this->field, fn (Builder $sub) => Qubuilder::make(['filter' => $this->value], $sub)->query());
-        }
-
-        $method = $or ? 'orDoesntHave' : 'doesntHave';
-
-        return $builder->{$method}($this->field);
-    }
-
-    /**
-     * Check whether `$this->field` resolves to a MorphTo relation on the builder's model.
-     */
-    private function isMorphToRelation(Builder $builder): bool
-    {
-        $model = $builder->getModel();
-
-        if (! method_exists($model, $this->field)) {
-            return false;
-        }
-
-        try {
-            return $model->{$this->field}() instanceof MorphTo;
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
-    /**
-     * Handle `has`/`doesnthave` on a MorphTo relation.
-     *
-     * **When a morph map is registered** (recommended): resolves valid types in PHP
-     * using `method_exists()` — no extra DB query, no UNION for excluded types.
-     *
-     * **When no morph map is registered**: falls back to `whereHasMorph('*', ...)`,
-     * which runs one `SELECT DISTINCT _type` query. Types that lack a required
-     * relation are excluded via `WHERE 0=1` inside the callback.
-     */
-    private function applyAutoMorphQuery(Builder $builder, bool $doesntHave): Builder
-    {
-        $or = $this->conjunction === 'OR';
-
-        $method = match (true) {
-            $doesntHave && $or => 'orWhereDoesntHaveMorph',
-            $doesntHave        => 'whereDoesntHaveMorph',
-            $or                => 'orWhereHasMorph',
-            default            => 'whereHasMorph',
+            '_like' => $builder->{$this->where()}($this->field, 'like', '%'.$this->value),
+            'like_' => $builder->{$this->where()}($this->field, 'like', $this->value.'%'),
+            '_like_' => $builder->{$this->where()}($this->field, 'like', '%'.$this->value.'%'),
+            'raw' => $builder->{$this->whereRaw()}($this->field, $this->value),
+            'field' => $builder->{$this->whereColumn()}($this->field, $this->subOp, $this->value),
+            default => $builder->{$this->where()}($this->field, $this->op, $this->value),
         };
 
-        $value           = $this->value;
-        $neededRelations = $this->extractHasRelations($value);
-        $resolvedTypes   = $this->filterMorphTypes($neededRelations);
-
-        // Morph map is configured: use the pre-filtered list.
-        // No extra DB query; excluded types generate no sub-query at all.
-        if ($resolvedTypes !== null) {
-            if (empty($resolvedTypes)) {
-                return $builder; // No type supports the required relations — skip
-            }
-
-            return $builder->{$method}(
-                $this->field,
-                $resolvedTypes,
-                fn (Builder $sub) => Qubuilder::make(['filter' => $value], $sub)->query()
-            );
-        }
-
-        // No morph map: use '*' (one SELECT DISTINCT query).
-        // Guard each type in the callback so unsupported ones produce no rows.
-        return $builder->{$method}(
-            $this->field,
-            '*',
-            function (Builder $sub) use ($value, $neededRelations) {
-                $model = $sub->getModel();
-
-                foreach ($neededRelations as $relation) {
-                    if (! method_exists($model, $relation)) {
-                        $sub->whereRaw('0 = 1');
-
-                        return;
-                    }
-                }
-
-                Qubuilder::make(['filter' => $value], $sub)->query();
-            }
-        );
     }
 
-    /**
-     * Resolve morph types eligible to be queried for the given sub-relations.
-     *
-     * When a morph map is registered, filters it in PHP using `method_exists()`
-     * — no DB query, no model instantiation.
-     *
-     * Returns `null` when no morph map is configured (caller should use `'*'`).
-     * Returns `[]` when morph map is set but no type supports all required relations.
-     * Returns `string[]` (FQCNs) when at least one type is valid.
-     *
-     * @param  array<int, string>  $neededRelations
-     * @return array<int, string>|null
-     */
-    private function filterMorphTypes(array $neededRelations): ?array
+    private function whereHas($builder)
     {
-        $morphMap = Relation::morphMap();
-
-        if (empty($morphMap)) {
-            return null;
+        $whereHas = 'whereHas';
+        $has = 'has';
+        if ($this->conjunction === 'OR') {
+            $whereHas = 'orWhereHas';
+            $has = 'orHas';
         }
 
-        $valid = [];
-
-        foreach ($morphMap as $class) {
-            foreach ($neededRelations as $relation) {
-                if (! method_exists($class, $relation)) {
-                    continue 2;
-                }
-            }
-
-            $valid[] = $class;
+        if (is_iterable($this->value)) {
+            return $builder->{$whereHas}($this->field, fn (Builder $subBuilder) => Qubuilder::make(['filter' => $this->value], $subBuilder)->query());
+        } else {
+            return $builder->{$has}($this->field, $this->subOp, (int) $this->value);
         }
 
-        return $valid;
     }
 
-    /**
-     * Recursively collect relation names from `has`/`doesnthave` conditions in a filter array.
-     *
-     * Recurses into AND/OR groups but stops at `has` sub-filter values — those belong
-     * to a deeper model and are irrelevant to the current morph type check.
-     *
-     * @return array<int, string>
-     */
-    private function extractHasRelations(mixed $filter): array
+    private function whereDoesntHave($builder)
     {
-        if (! is_array($filter)) {
-            return [];
+        $whereHas = 'whereDoesntHave';
+        $has = 'doesntHave';
+        if ($this->conjunction === 'OR') {
+            $whereHas = 'orWhereDoesntHave';
+            $has = 'orDoesntHave';
         }
 
-        $relations = [];
-
-        foreach ($filter as $condition) {
-            if (! is_array($condition)) {
-                continue;
-            }
-
-            if (isset($condition['field'])) {
-                $primaryOp = explode('|', strtolower($condition['op'] ?? '='))[0];
-                if (in_array($primaryOp, ['has', 'doesnthave'], true)) {
-                    $relations[] = $condition['field'];
-                }
-            } else {
-                // AND / OR group — recurse into it
-                $relations = array_merge($relations, $this->extractHasRelations($condition));
-            }
+        if (is_iterable($this->value)) {
+            return $builder->{$whereHas}($this->field, fn (Builder $subBuilder) => Qubuilder::make(['filter' => $this->value], $subBuilder)->query());
+        } else {
+            return $builder->{$has}($this->field);
         }
 
-        return array_unique($relations);
     }
 
     private function where(string $type = ''): string
@@ -312,11 +154,11 @@ class WhereClause
 
     private function whereRaw(): string
     {
-        return $this->conjunction === 'OR' ? 'orWhereRaw' : 'whereRaw';
+        return $this->conjunction === 'OR' ? "orWhereRaw" : "whereRaw";
     }
 
     private function whereColumn(): string
     {
-        return $this->conjunction === 'OR' ? 'orWhereColumn' : 'whereColumn';
+        return $this->conjunction === 'OR' ? "orWhereColumn" : "whereColumn";
     }
 }
