@@ -50,6 +50,12 @@ class Where
             return $builder;
         }
 
+        // A bare single-condition object (has a top-level 'field' key) is not a
+        // group — normalise it to a one-item list so the loop handles it uniformly.
+        if (isset($this->where['field'])) {
+            $this->where = [$this->where];
+        }
+
         $group = function (Builder $subBuilder) {
             foreach ($this->where as $key => $condition) {
 
