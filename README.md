@@ -596,6 +596,8 @@ If you discover a security issue please email [kalim.dir@gmail.com](mailto:kalim
 ## Credits
 
 - [Kalim ul Haq](https://github.com/kalimulhaq)
+- [Usman Ejaz](https://github.com/Usman-Ejaz)
+- [Rana Usman Khan](https://github.com/RanaUsman3131)
 - [All Contributors](../../contributors)
 
 ## License
