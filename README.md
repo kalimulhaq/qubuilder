@@ -632,15 +632,15 @@ Groups can be nested to any depth:
 
 ### Comparison
 
-| `op` | SQL | Default |
-|------|-----|---------|
-| `=` | `= value` | Yes — used when `op` is omitted |
-| `!=` | `!= value` | |
-| `<>` | `<> value` | |
-| `>` | `> value` | |
-| `<` | `< value` | |
-| `>=` | `>= value` | |
-| `<=` | `<= value` | |
+| `op` | SQL | Note |
+|------|-----|------|
+| `=` | `= value` | Default — used when `op` is omitted |
+| `!=` | `!= value` | Not-equal; standard SQL syntax |
+| `<>` | `<> value` | Not-equal; ISO SQL alias for `!=` |
+| `>` | `> value` | Greater than |
+| `<` | `< value` | Less than |
+| `>=` | `>= value` | Greater than or equal to |
+| `<=` | `<= value` | Less than or equal to |
 
 ```php
 ['field' => 'score', 'op' => '>=', 'value' => 90]
