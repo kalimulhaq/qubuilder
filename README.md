@@ -2,9 +2,26 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
 [![Total Downloads](https://img.shields.io/packagist/dt/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
-![GitHub Actions](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml/badge.svg?branch=main)
+[![GitHub Stars](https://img.shields.io/github/stars/kalimulhaq/qubuilder?style=flat-square)](https://github.com/kalimulhaq/qubuilder/stargazers)
+[![CI](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml)
+[![PHP](https://img.shields.io/packagist/php-v/kalimulhaq/qubuilder.svg?style=flat-square&logo=php&logoColor=white)](https://packagist.org/packages/kalimulhaq/qubuilder)
+[![Laravel](https://img.shields.io/badge/Laravel-11%2B-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+[![License](https://img.shields.io/github/license/kalimulhaq/qubuilder?style=flat-square)](LICENSE.md)
 
-A Laravel package that converts structured JSON filter arrays into Eloquent query builder chains. Pass `select`, `filter`, `include`, `sort`, `group`, `page`, and `limit` parameters — from an HTTP request or a plain array — and get back a fully-built `Builder` instance ready to paginate or execute.
+**Qubuilder** turns a structured filter payload into a fully-chained Eloquent query — no manual `if` chains, no hand-rolled request parsers.
+
+Send filters from an HTTP request (GET or POST) or pass them as a plain PHP array and get back a ready-to-paginate `Builder` in a single call. Every parameter is optional; use only what each endpoint needs.
+
+**Capabilities at a glance:**
+
+| Key | What it does |
+|-----|-------------|
+| `select` | Choose which columns to return |
+| `filter` | Nested AND/OR conditions with 20+ operators |
+| `include` | Eager-load relations with sub-filters, sorts, and aggregates |
+| `sort` | Multi-column ordering, including raw expressions |
+| `group` | GROUP BY clauses |
+| `page` / `limit` | Pagination with a configurable hard cap |
 
 **Requires:** PHP 8.3+ · Laravel 11+
 
