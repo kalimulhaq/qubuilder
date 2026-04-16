@@ -941,3 +941,11 @@ If you discover a security issue please email [kalim.dir@gmail.com](mailto:kalim
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+
+---
+
+## Support
+
+If you find this package useful, consider buying me a coffee!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/kalimulhaq)
