@@ -57,20 +57,13 @@ return [
 ];
 ```
 
+> The `group` parameter name is fixed (`'group'`) and cannot be customised via the `params` config.
+
+> **Limit clamping:** Any `limit` value above `max` is silently clamped to `max`. Values of `0` or below are also clamped to `max` (not to `1` or the default), so sending `limit=0` returns `max` records.
+
 ---
 
 ## Quick Start
-
-### From an HTTP Request
-
-```php
-use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
-
-// GET /api/users?filter={"field":"status","op":"=","value":"active"}&sort={"created_at":"desc"}&limit=20
-$users = Qubuilder::makeFromRequest(request(), User::class)
-    ->query()
-    ->paginate();
-```
 
 ### From a Plain Array
 
@@ -81,8 +74,8 @@ $filters = [
     'select'  => ['id', 'name', 'email'],
     'filter'  => [
         'AND' => [
-            ['field' => 'status', 'op' => '=',   'value' => 'active'],
-            ['field' => 'age',    'op' => '>=',  'value' => 18],
+            ['field' => 'status', 'op' => '=',  'value' => 'active'],
+            ['field' => 'age',    'op' => '>=', 'value' => 18],
         ],
     ],
     'include' => [
@@ -107,6 +100,320 @@ $builder = User::where('tenant_id', $tenantId);
 
 $users = Qubuilder::make($filters, $builder)->query()->paginate();
 ```
+
+### From an HTTP Request
+
+Both GET (query string) and POST (request body) are supported — the package reads from `$request->input()`, which transparently handles both methods.
+
+```php
+use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+
+// GET  /api/users?filter={"AND":[{"field":"status","op":"=","value":"active"}]}&sort={"created_at":"desc"}&limit=20
+// POST /api/users  { "filter": {"AND":[{"field":"status","op":"=","value":"active"}]}, "sort": {"created_at":"desc"}, "limit": 20 }
+
+$users = Qubuilder::makeFromRequest(request(), User::class)
+    ->query()
+    ->paginate();
+```
+
+You can also extend the built-in `GetCollectionRequest` to get automatic validation:
+
+```php
+use Kalimulhaq\Qubuilder\Http\Requests\GetCollectionRequest;
+use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+
+class ListUsersRequest extends GetCollectionRequest {}
+
+public function index(ListUsersRequest $request)
+{
+    return Qubuilder::make($request->filters(), User::class)
+        ->query()
+        ->paginate();
+}
+```
+
+---
+
+## Detailed Example
+
+A single filters payload that exercises every available option — shown as both a PHP array and its JSON equivalent for use in HTTP requests.
+
+### PHP Array
+
+```php
+$filters = [
+
+    // ── Columns ──────────────────────────────────────────────────────────────
+    'select' => ['id', 'name', 'email', 'status', 'created_at'],
+
+    // ── WHERE Conditions ─────────────────────────────────────────────────────
+    'filter' => [
+        'AND' => [
+
+            // Comparison operators: =  !=  <>  >  <  >=  <=
+            ['field' => 'status',      'op' => '=',   'value' => 'active'],
+            ['field' => 'age',         'op' => '>=',  'value' => 18],
+            ['field' => 'score',       'op' => '!=',  'value' => 0],
+
+            // List operators
+            ['field' => 'role',        'op' => 'in',          'value' => ['admin', 'editor']],
+            ['field' => 'type',        'op' => 'not_in',      'value' => ['guest', 'banned']],
+            ['field' => 'created_at',  'op' => 'between',     'value' => ['2024-01-01', '2024-12-31']],
+            ['field' => 'score',       'op' => 'not_between', 'value' => [0, 10]],
+
+            // Null checks (no value needed)
+            ['field' => 'verified_at', 'op' => 'not_null'],
+            ['field' => 'deleted_at',  'op' => 'null'],   // auto-applies ->withTrashed()
+
+            // LIKE / text search
+            ['field' => 'name',        'op' => '_like_', 'value' => 'john'],   // LIKE '%john%'
+            ['field' => 'email',       'op' => 'like_',  'value' => 'admin'],  // LIKE 'admin%'
+            ['field' => 'bio',         'op' => '_like',  'value' => '.com'],   // LIKE '%.com'
+
+            // Date & time operators
+            ['field' => 'created_at',   'op' => 'date',  'value' => '2024-06-15'],
+            ['field' => 'created_at',   'op' => 'year',  'value' => 2024],
+            ['field' => 'created_at',   'op' => 'month', 'value' => 6],
+            ['field' => 'created_at',   'op' => 'day',   'value' => 15],
+            ['field' => 'published_at', 'op' => 'time',  'value' => '09:00:00'],
+
+            // JSON column
+            ['field' => 'settings->notifications', 'op' => 'json_contains',     'value' => 'email'],
+            ['field' => 'settings->flags',         'op' => 'json_not_contains', 'value' => 'beta'],
+
+            // Column-to-column comparison  (field|<operator>)
+            ['field' => 'updated_at', 'op' => 'field|>', 'value' => 'created_at'],
+
+            // Raw WHERE expression
+            ['field' => 'YEAR(created_at) = ?', 'op' => 'raw', 'value' => [2024]],
+
+            // Relationship existence
+            ['field' => 'orders', 'op' => 'has|>=', 'value' => 3],             // has('orders', '>=', 3)
+            [
+                'field' => 'orders',
+                'op'    => 'has',
+                'value' => [
+                    'AND' => [
+                        ['field' => 'status', 'op' => '=', 'value' => 'completed'],
+                    ],
+                ],
+            ],
+            ['field' => 'invoices', 'op' => 'doesnthave'],                       // doesntHave('invoices')
+            [
+                'field' => 'invoices',
+                'op'    => 'doesnthave',
+                'value' => [
+                    'AND' => [
+                        ['field' => 'status', 'op' => '=', 'value' => 'cancelled'],
+                    ],
+                ],
+            ],
+
+            // Multi-column operators
+            [
+                'field' => ['first_name', 'last_name', 'email'],
+                'op'    => 'any|_like_',
+                'value' => 'john',
+            ],  // whereAny([...], 'like', '%john%')
+
+            // Nested OR group inside the top-level AND
+            [
+                'OR' => [
+                    ['field' => 'country', 'op' => '=', 'value' => 'US'],
+                    ['field' => 'country', 'op' => '=', 'value' => 'CA'],
+                ],
+            ],
+        ],
+    ],
+
+    // ── Eager Loading ─────────────────────────────────────────────────────────
+    'include' => [
+
+        // Basic relation
+        ['name' => 'profile'],
+
+        // Relation with sub-filters, sort, and limit
+        [
+            'name'   => 'orders',
+            'select' => ['id', 'status', 'total'],
+            'filter' => [
+                'AND' => [
+                    ['field' => 'status', 'op' => '=', 'value' => 'completed'],
+                ],
+            ],
+            'sort'   => ['created_at' => 'desc'],
+            'limit'  => 5,
+        ],
+
+        // Nested include
+        [
+            'name'    => 'orders',
+            'include' => [
+                ['name' => 'items', 'select' => ['id', 'product_id', 'qty']],
+            ],
+        ],
+
+        // Aggregate: count
+        ['name' => 'orders', 'aggregate' => 'count'],
+
+        // Aggregate: sum with filter scope
+        [
+            'name'      => 'orders',
+            'aggregate' => 'sum',
+            'field'     => 'total',
+            'filter'    => [
+                'AND' => [
+                    ['field' => 'status', 'op' => '=', 'value' => 'completed'],
+                ],
+            ],
+        ],
+
+        // Aggregate: avg
+        ['name' => 'reviews', 'aggregate' => 'avg', 'field' => 'rating'],
+
+        // Aggregate: min / max
+        ['name' => 'orders', 'aggregate' => 'min', 'field' => 'total'],
+        ['name' => 'orders', 'aggregate' => 'max', 'field' => 'total'],
+    ],
+
+    // ── Sorting ───────────────────────────────────────────────────────────────
+    'sort' => [
+        'created_at' => 'desc',
+        'name'       => 'asc',
+        "raw:FIELD(status,'active','pending','inactive')" => 'asc',  // orderByRaw
+    ],
+
+    // ── Group By ──────────────────────────────────────────────────────────────
+    'group' => ['status', 'role'],
+
+    // ── Pagination ────────────────────────────────────────────────────────────
+    'page'  => 1,
+    'limit' => 20,
+];
+
+$users = Qubuilder::make($filters, User::class)->query()->paginate();
+```
+
+### JSON (for HTTP requests — GET or POST)
+
+The same payload encoded as JSON query-string parameters (GET) or request body (POST):
+
+```json
+{
+    "select": ["id", "name", "email", "status", "created_at"],
+
+    "filter": {
+        "AND": [
+            { "field": "status",      "op": "=",   "value": "active" },
+            { "field": "age",         "op": ">=",  "value": 18 },
+            { "field": "score",       "op": "!=",  "value": 0 },
+
+            { "field": "role",        "op": "in",          "value": ["admin", "editor"] },
+            { "field": "type",        "op": "not_in",      "value": ["guest", "banned"] },
+            { "field": "created_at",  "op": "between",     "value": ["2024-01-01", "2024-12-31"] },
+            { "field": "score",       "op": "not_between", "value": [0, 10] },
+
+            { "field": "verified_at", "op": "not_null" },
+            { "field": "deleted_at",  "op": "null" },
+
+            { "field": "name",  "op": "_like_", "value": "john" },
+            { "field": "email", "op": "like_",  "value": "admin" },
+            { "field": "bio",   "op": "_like",  "value": ".com" },
+
+            { "field": "created_at",   "op": "date",  "value": "2024-06-15" },
+            { "field": "created_at",   "op": "year",  "value": 2024 },
+            { "field": "created_at",   "op": "month", "value": 6 },
+            { "field": "created_at",   "op": "day",   "value": 15 },
+            { "field": "published_at", "op": "time",  "value": "09:00:00" },
+
+            { "field": "settings->notifications", "op": "json_contains",     "value": "email" },
+            { "field": "settings->flags",         "op": "json_not_contains", "value": "beta" },
+
+            { "field": "updated_at", "op": "field|>", "value": "created_at" },
+
+            { "field": "YEAR(created_at) = ?", "op": "raw", "value": [2024] },
+
+            { "field": "orders", "op": "has|>=", "value": 3 },
+            {
+                "field": "orders",
+                "op": "has",
+                "value": {
+                    "AND": [{ "field": "status", "op": "=", "value": "completed" }]
+                }
+            },
+            { "field": "invoices", "op": "doesnthave" },
+            {
+                "field": "invoices",
+                "op": "doesnthave",
+                "value": {
+                    "AND": [{ "field": "status", "op": "=", "value": "cancelled" }]
+                }
+            },
+
+            { "field": ["first_name", "last_name", "email"], "op": "any|_like_", "value": "john" },
+
+            {
+                "OR": [
+                    { "field": "country", "op": "=", "value": "US" },
+                    { "field": "country", "op": "=", "value": "CA" }
+                ]
+            }
+        ]
+    },
+
+    "include": [
+        { "name": "profile" },
+        {
+            "name": "orders",
+            "select": ["id", "status", "total"],
+            "filter": {
+                "AND": [{ "field": "status", "op": "=", "value": "completed" }]
+            },
+            "sort": { "created_at": "desc" },
+            "limit": 5
+        },
+        {
+            "name": "orders",
+            "include": [
+                { "name": "items", "select": ["id", "product_id", "qty"] }
+            ]
+        },
+        { "name": "orders",  "aggregate": "count" },
+        {
+            "name": "orders",
+            "aggregate": "sum",
+            "field": "total",
+            "filter": {
+                "AND": [{ "field": "status", "op": "=", "value": "completed" }]
+            }
+        },
+        { "name": "reviews", "aggregate": "avg", "field": "rating" },
+        { "name": "orders",  "aggregate": "min", "field": "total" },
+        { "name": "orders",  "aggregate": "max", "field": "total" }
+    ],
+
+    "sort": {
+        "created_at": "desc",
+        "name": "asc",
+        "raw:FIELD(status,'active','pending','inactive')": "asc"
+    },
+
+    "group": ["status", "role"],
+
+    "page": 1,
+    "limit": 20
+}
+```
+
+> **GET request tip:** JSON-encode each parameter value individually in the query string — do not encode the whole object as one string.
+> ```
+> GET /api/users
+>   ?filter={"AND":[{"field":"status","op":"=","value":"active"}]}
+>   &sort={"created_at":"desc"}
+>   &include=[{"name":"orders","aggregate":"count"}]
+>   &page=1
+>   &limit=20
+> ```
 
 ---
 
@@ -262,7 +569,7 @@ Groups can be nested to any depth:
 ['field' => 'verified_at', 'op' => 'not_null']
 ```
 
-> **Soft Deletes:** Filtering on `deleted_at` automatically applies `->withTrashed()` so soft-deleted records are included in the result set.
+> **Soft Deletes:** Any filter condition targeting `deleted_at` — regardless of operator — automatically applies `->withTrashed()` globally, so soft-deleted records are included in the result set. This means operators like `=`, `between`, or `not_null` on `deleted_at` all trigger the same behaviour.
 
 ---
 
@@ -318,7 +625,7 @@ Use `->` or dot notation to target a nested key.
 
 ### Column Comparison
 
-Compare two columns using `field|<operator>` syntax.
+Compare two columns using `field|<operator>` syntax. Supported operators: `=`, `!=`, `<>`, `>`, `<`, `>=`, `<=`.
 
 ```php
 ['field' => 'updated_at', 'op' => 'field|>', 'value' => 'created_at']
@@ -345,6 +652,13 @@ Compare two columns using `field|<operator>` syntax.
 ```php
 ['field' => 'orders', 'op' => 'has|>=', 'value' => 3]
 // ->has('orders', '>=', 3)
+```
+
+Omitting the sub-operator defaults to `=`:
+
+```php
+['field' => 'orders', 'op' => 'has', 'value' => 1]
+// ->has('orders', '=', 1)
 ```
 
 **With sub-filters** (uses `whereHas`):
@@ -496,6 +810,12 @@ Set `aggregate` to compute a value instead of loading records. For `avg`, `sum`,
 
     ['name' => 'reviews', 'aggregate' => 'avg', 'field' => 'rating'],
     // $user->reviews_avg_rating
+
+    ['name' => 'orders', 'aggregate' => 'min', 'field' => 'total'],
+    // $user->orders_min_total
+
+    ['name' => 'orders', 'aggregate' => 'max', 'field' => 'total'],
+    // $user->orders_max_total
 ]
 ```
 
@@ -549,7 +869,7 @@ use Kalimulhaq\Qubuilder\Http\Requests\GetCollectionRequest;
 class ListUsersRequest extends GetCollectionRequest {}
 ```
 
-Validates: `select` (JSON), `filter` (JSON), `include` (JSON), `sort` (JSON), `page` (integer), `limit` (integer, max from config).
+Validates: `select` (JSON), `filter` (JSON), `include` (JSON), `sort` (JSON), `page` (integer), `limit` (integer, max from config). The `group` parameter is accepted but not formally validated by this class.
 
 **`GetResourceRequest`** — extends `GetCollectionRequest`, validates only `select` and `include` (suitable for single-resource endpoints).
 
@@ -560,10 +880,11 @@ use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
 
 public function index(ListUsersRequest $request)
 {
-    return User::query()
-        ->where('tenant_id', auth()->user()->tenant_id)
-        ->tap(fn ($q) => Qubuilder::make($request->filters(), $q)->query())
-        ->paginate($request->filters()['limit']);
+    $builder = User::query()->where('tenant_id', auth()->user()->tenant_id);
+
+    return Qubuilder::make($request->filters(), $builder)
+        ->query()
+        ->paginate();
 }
 ```
 
