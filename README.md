@@ -432,6 +432,95 @@ The same payload encoded as JSON query-string parameters (GET) or request body (
 >   &limit=20
 > ```
 
+### Generated SQL
+
+The payload above produces the following queries.
+
+> `deleted_at` appears in the filter, so `->withTrashed()` is applied — the automatic soft-delete scope (`AND users.deleted_at IS NULL`) is removed and the explicit condition from the filter takes its place.
+
+**Main query** (aggregate `include` items are injected as SELECT subqueries):
+
+```sql
+SELECT
+    `id`, `name`, `email`, `status`, `created_at`,
+    (SELECT count(*)   FROM `orders`  WHERE `orders`.`user_id`  = `users`.`id`)                                    AS `orders_count`,
+    (SELECT sum(`total`) FROM `orders` WHERE `orders`.`user_id` = `users`.`id` AND `orders`.`status` = 'completed') AS `orders_sum_total`,
+    (SELECT avg(`rating`) FROM `reviews` WHERE `reviews`.`user_id` = `users`.`id`)                                 AS `reviews_avg_rating`,
+    (SELECT min(`total`) FROM `orders`  WHERE `orders`.`user_id` = `users`.`id`)                                   AS `orders_min_total`,
+    (SELECT max(`total`) FROM `orders`  WHERE `orders`.`user_id` = `users`.`id`)                                   AS `orders_max_total`
+FROM `users`
+WHERE (
+        `status` = 'active'
+    AND `age` >= 18
+    AND `score` != 0
+    AND `role` IN ('admin', 'editor')
+    AND `type` NOT IN ('guest', 'banned')
+    AND `created_at` BETWEEN '2024-01-01' AND '2024-12-31'
+    AND `score` NOT BETWEEN 0 AND 10
+    AND `verified_at` IS NOT NULL
+    AND `deleted_at` IS NULL
+    AND `name` LIKE '%john%'
+    AND `email` LIKE 'admin%'
+    AND `bio` LIKE '%.com'
+    AND DATE(`created_at`) = '2024-06-15'
+    AND YEAR(`created_at`) = 2024
+    AND MONTH(`created_at`) = 6
+    AND DAY(`created_at`) = 15
+    AND TIME(`published_at`) = '09:00:00'
+    AND JSON_CONTAINS(`settings`, '"email"', '$.notifications')
+    AND NOT JSON_CONTAINS(`settings`, '"beta"', '$.flags')
+    AND `updated_at` > `created_at`
+    AND YEAR(created_at) = 2024
+    AND (SELECT count(*) FROM `orders` WHERE `orders`.`user_id` = `users`.`id`) >= 3
+    AND EXISTS (
+            SELECT * FROM `orders`
+            WHERE `orders`.`user_id` = `users`.`id`
+            AND `orders`.`status` = 'completed'
+        )
+    AND NOT EXISTS (
+            SELECT * FROM `invoices`
+            WHERE `invoices`.`user_id` = `users`.`id`
+        )
+    AND NOT EXISTS (
+            SELECT * FROM `invoices`
+            WHERE `invoices`.`user_id` = `users`.`id`
+            AND `invoices`.`status` = 'cancelled'
+        )
+    AND (
+            `first_name` LIKE '%john%'
+            OR `last_name` LIKE '%john%'
+            OR `email` LIKE '%john%'
+        )
+    AND (
+            `country` = 'US'
+            OR `country` = 'CA'
+        )
+)
+GROUP BY `status`, `role`
+ORDER BY `created_at` DESC, `name` ASC, FIELD(status,'active','pending','inactive') ASC
+LIMIT 20 OFFSET 0
+```
+
+**Eager-load queries** (non-aggregate `include` items run as separate queries):
+
+```sql
+-- include: profile (basic)
+SELECT * FROM `profiles`
+WHERE `profiles`.`user_id` IN (...)
+
+-- include: orders (sub-filtered, sorted, limit 5)
+SELECT `id`, `status`, `total`
+FROM `orders`
+WHERE `orders`.`user_id` IN (...)
+AND `orders`.`status` = 'completed'
+ORDER BY `created_at` DESC
+LIMIT 5
+
+-- include: orders → items (nested — two queries)
+SELECT * FROM `orders` WHERE `orders`.`user_id` IN (...)
+SELECT `id`, `product_id`, `qty` FROM `items` WHERE `items`.`order_id` IN (...)
+```
+
 ---
 
 ## API Reference
