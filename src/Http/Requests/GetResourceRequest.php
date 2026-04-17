@@ -3,25 +3,19 @@
 namespace Kalimulhaq\Qubuilder\Http\Requests;
 
 use Illuminate\Support\Arr;
+use Kalimulhaq\Qubuilder\Rules\ValidateInclude;
+use Kalimulhaq\Qubuilder\Rules\ValidateStringArray;
 use Kalimulhaq\Qubuilder\Support\Helper;
 
 /**
  * Form request for single-resource endpoints.
  *
- * Extends {@see GetCollectionRequest} but restricts validation to only the
- * `select` and `include` parameters — pagination, filtering, and sorting are
- * not applicable to single-record responses.
+ * A specialised subset of {@see GetCollectionRequest} that accepts only
+ * `select` and `include` — pagination, filtering, and sorting are not
+ * applicable to single-record responses.
  *
- * ## Request Parameters
- *
- * @property-read string|array $select
- *   JSON array of column names to return.
- *   Example: `["id","name","email"]`
- *
- * @property-read string|array $include
- *   JSON array of relationship definitions to eager-load.
- *   Each entry requires at minimum a `name` key (the relation method name).
- *   Example: `[{"name":"profile"},{"name":"roles","select":["id","name"]}]`
+ * Parameter names are configurable via `qubuilder.params`; the names below reflect
+ * the defaults.
  */
 class GetResourceRequest extends GetCollectionRequest
 {
@@ -46,11 +40,29 @@ class GetResourceRequest extends GetCollectionRequest
         $include = Helper::param('include');
 
         return [
-            // JSON array of column names — e.g. ["id","name","email"]
-            $select  => ['sometimes', 'json'],
+            /**
+             * @queryParam select string
+             *   Indexed JSON array of column names to include in the response.
+             *   Omit to return all columns.
+             *   Example: ["id","name","email"]
+             */
+            $select  => ['sometimes', new ValidateStringArray],
 
-            // JSON array of relationship definitions to eager-load
-            $include => ['sometimes', 'json'],
+            /**
+             * @queryParam include string
+             *   JSON array of eager-load definitions. Each object must have a `name` key
+             *   (the Eloquent relation method name) and may include:
+             *   - select    — column subset (array of strings)
+             *   - filter    — sub-filter applied to the relation
+             *   - sort      — sort the relation results
+             *   - aggregate — one of: count avg sum min max
+             *   - field     — required when aggregate is avg, sum, min, or max
+             *   - page / limit — paginate the relation
+             *   - include   — nested includes (recursive)
+             *
+             *   Example: [{"name":"profile"},{"name":"roles","select":["id","name"]}]
+             */
+            $include => ['sometimes', new ValidateInclude],
         ];
     }
 

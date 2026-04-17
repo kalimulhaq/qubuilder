@@ -3,46 +3,21 @@
 namespace Kalimulhaq\Qubuilder\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Kalimulhaq\Qubuilder\Rules\ValidateJson;
+use Kalimulhaq\Qubuilder\Rules\ValidateFilter;
+use Kalimulhaq\Qubuilder\Rules\ValidateInclude;
+use Kalimulhaq\Qubuilder\Rules\ValidateSort;
+use Kalimulhaq\Qubuilder\Rules\ValidateStringArray;
 use Kalimulhaq\Qubuilder\Support\Helper;
 
 /**
  * Form request for paginated collection endpoints.
  *
- * Validates and parses all Qubuilder query parameters from the HTTP request.
- * All parameters are optional. JSON parameters accept either a JSON-encoded
- * string or a pre-decoded array.
+ * Validates and normalises all Qubuilder query parameters from the HTTP request.
+ * All parameters are optional. JSON parameters accept either a JSON-encoded string
+ * or, when called programmatically (e.g. tests), a pre-decoded PHP array.
  *
- * ## Request Parameters
- *
- * @property-read string|array $select
- *   JSON array of column names to return.
- *   Example: `["id","name","email"]`
- *
- * @property-read string|array $filter
- *   JSON filter object. Conditions must be wrapped in `AND`/`OR` groups or
- *   passed as a flat array of condition objects.
- *   Example: `{"AND":[{"field":"status","op":"=","value":"active"}]}`
- *
- * @property-read string|array $include
- *   JSON array of relationship definitions to eager-load.
- *   Each entry requires at minimum a `name` key (the relation method name).
- *   Example: `[{"name":"orders","aggregate":"count"}]`
- *
- * @property-read string|array $sort
- *   JSON object of `column => direction` pairs. Use `raw:` prefix for raw expressions.
- *   Example: `{"created_at":"desc","name":"asc"}`
- *
- * @property-read string|array $group
- *   JSON array of column names to group results by.
- *   Example: `["status","type"]`
- *
- * @property-read int $page
- *   Page number for pagination. Must be a positive integer. Default: `1`.
- *
- * @property-read int $limit
- *   Number of records per page. Must be between `1` and the configured max (default `50`).
- *   Default: `15`.
+ * Parameter names are configurable via `qubuilder.params`; the names below reflect
+ * the defaults.
  */
 class GetCollectionRequest extends FormRequest
 {
@@ -64,9 +39,9 @@ class GetCollectionRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * All parameters are optional (`sometimes`). JSON parameters are validated
-     * via {@see ValidateJson}. The `limit` is capped at the value configured
-     * in `qubuilder.limit.max`.
+     * All parameters are optional (`sometimes`). Each JSON parameter is validated
+     * against the exact structure the package expects. The `limit` is capped at
+     * the value configured in `qubuilder.limit.max`.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
@@ -81,25 +56,74 @@ class GetCollectionRequest extends FormRequest
         $limit   = Helper::param('limit');
 
         return [
-            // JSON array of column names — e.g. ["id","name","email"]
-            $select  => ['sometimes', new ValidateJson],
+            /**
+             * @queryParam select string
+             *   Indexed JSON array of column names to include in the response.
+             *   Omit to return all columns.
+             *   Example: ["id","name","email"]
+             */
+            $select  => ['sometimes', new ValidateStringArray],
 
-            // JSON filter structure — conditions wrapped in AND/OR groups
-            $filter  => ['sometimes', new ValidateJson],
+            /**
+             * @queryParam filter string
+             *   JSON filter definition. Supports three node shapes:
+             *   - Condition object:  {"field":"name","op":"=","value":"Alice"}
+             *   - AND / OR group:    {"AND":[...conditions/groups...]}
+             *   - Flat list (AND):   [{"field":"status","op":"=","value":"active"},...]
+             *
+             *   Operators: = != <> > < >= <= in not_in between not_between null not_null
+             *   _like like_ _like_ date year month day time json_contains json_not_contains
+             *   raw field has doesnthave any all none
+             *   Piped sub-operators: has|>= field|!= any|_like_ etc.
+             *
+             *   Example: {"AND":[{"field":"status","op":"=","value":"active"},{"field":"age","op":">=","value":18}]}
+             */
+            $filter  => ['sometimes', new ValidateFilter],
 
-            // JSON array of relationship definitions to eager-load
-            $include => ['sometimes', new ValidateJson],
+            /**
+             * @queryParam include string
+             *   JSON array of eager-load definitions. Each object must have a `name` key
+             *   (the Eloquent relation method name) and may include:
+             *   - select    — column subset (array of strings)
+             *   - filter    — sub-filter applied to the relation
+             *   - sort      — sort the relation results
+             *   - aggregate — one of: count avg sum min max
+             *   - field     — required when aggregate is avg, sum, min, or max
+             *   - page / limit — paginate the relation
+             *   - include   — nested includes (recursive)
+             *
+             *   Example: [{"name":"roles","select":["id","name"]},{"name":"orders","aggregate":"count"}]
+             */
+            $include => ['sometimes', new ValidateInclude],
 
-            // JSON object of column => direction sort pairs
-            $sort    => ['sometimes', new ValidateJson],
+            /**
+             * @queryParam sort string
+             *   JSON object of column => direction pairs. Direction must be asc or desc
+             *   (case-insensitive). Prefix a key with raw: for raw SQL expressions.
+             *   Example: {"created_at":"desc","name":"asc"}
+             */
+            $sort    => ['sometimes', new ValidateSort],
 
-            // JSON array of column names to group results by
-            $group   => ['sometimes', new ValidateJson],
+            /**
+             * @queryParam group string
+             *   Indexed JSON array of column names to add to the GROUP BY clause.
+             *   Example: ["status","type"]
+             */
+            $group   => ['sometimes', new ValidateStringArray],
 
-            // Positive integer page number
+            /**
+             * @queryParam page integer
+             *   1-based page number for pagination. Defaults to 1.
+             *   Example: 1
+             */
             $page    => ['sometimes', 'integer', 'min:1'],
 
-            // Records per page, capped at qubuilder.limit.max
+            /**
+             * @queryParam limit integer
+             *   Number of records per page. Must be between 1 and the configured maximum
+             *   (default 50, set via qubuilder.limit.max). Defaults to 15.
+             *   Example: 15
+             */
             $limit   => ['sometimes', 'integer', 'between:1,'.Helper::maxLimit()],
         ];
     }

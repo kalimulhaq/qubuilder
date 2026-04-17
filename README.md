@@ -964,21 +964,102 @@ private function commentableMap(): array
 
 ### Form Request Classes
 
-The package ships two `FormRequest` base classes you can extend in your controllers.
+The package ships two ready-to-use `FormRequest` classes that validate every Qubuilder
+query parameter before it reaches your controller. They can be used directly or extended
+when you need to add your own authorisation logic, extra rules, or custom validation.
 
-**`GetCollectionRequest`** — validates all parameters for list endpoints:
+---
+
+#### `GetCollectionRequest`
+
+Validates all parameters for paginated list endpoints:
+`select`, `filter`, `include`, `sort`, `group` (all JSON), `page` and `limit` (integers).
+
+**Use directly** — type-hint it in your controller method:
+
+```php
+use Kalimulhaq\Qubuilder\Http\Requests\GetCollectionRequest;
+use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+
+public function index(GetCollectionRequest $request)
+{
+    return Qubuilder::make($request->filters(), User::class)
+        ->query()
+        ->paginate();
+}
+```
+
+**Extend** — add your own `authorize()`, extra rules, or override any method:
 
 ```php
 use Kalimulhaq\Qubuilder\Http\Requests\GetCollectionRequest;
 
-class ListUsersRequest extends GetCollectionRequest {}
+class ListUsersRequest extends GetCollectionRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()->can('viewAny', User::class);
+    }
+
+    public function rules(): array
+    {
+        return array_merge(parent::rules(), [
+            'search' => ['sometimes', 'string', 'max:100'],
+        ]);
+    }
+}
 ```
 
-Validates: `select` (JSON), `filter` (JSON), `include` (JSON), `sort` (JSON), `group` (JSON), `page` (integer), `limit` (integer, max from config).
+The built-in validation rules are available individually if you need to reuse them
+in a fully custom request class:
 
-**`GetResourceRequest`** — extends `GetCollectionRequest`, validates only `select` and `include` (suitable for single-resource endpoints).
+| Parameter | Rule class |
+|-----------|------------|
+| `select`, `group` | `ValidateStringArray` |
+| `filter`  | `ValidateFilter` |
+| `include` | `ValidateInclude` |
+| `sort`    | `ValidateSort` |
 
-Both expose a `->filters()` method returning the parsed array, ready to pass directly to `Qubuilder::make()`.
+```php
+use Kalimulhaq\Qubuilder\Rules\ValidateFilter;
+use Kalimulhaq\Qubuilder\Support\Helper;
+
+public function rules(): array
+{
+    return [
+        Helper::param('filter') => ['sometimes', new ValidateFilter],
+        // ... your own rules
+    ];
+}
+```
+
+---
+
+#### `GetResourceRequest`
+
+Extends `GetCollectionRequest` but restricts validation to `select` and `include` only —
+suitable for single-record endpoints where pagination, filtering, and sorting don't apply.
+
+**Use directly:**
+
+```php
+use Kalimulhaq\Qubuilder\Http\Requests\GetResourceRequest;
+use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+
+public function show(GetResourceRequest $request, int $id)
+{
+    return Qubuilder::make($request->filters(), User::class)
+        ->query()
+        ->findOrFail($id);
+}
+```
+
+**Extend** — same pattern as `GetCollectionRequest`.
+
+---
+
+Both classes expose a `->filters()` method that returns the normalised array, ready to
+pass directly to `Qubuilder::make()`.
 
 ```php
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
