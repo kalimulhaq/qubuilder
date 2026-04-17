@@ -62,6 +62,7 @@ return [
         'filter'  => null,   // default: 'filter'
         'include' => null,   // default: 'include'
         'sort'    => null,   // default: 'sort'
+        'group'   => null,   // default: 'group'
         'page'    => null,   // default: 'page'
         'limit'   => null,   // default: 'limit'
     ],
@@ -73,8 +74,6 @@ return [
 
 ];
 ```
-
-> The `group` parameter name is fixed (`'group'`) and cannot be customised via the `params` config.
 
 > **Limit clamping:** Any `limit` value above `max` is silently clamped to `max`. Values of `0` or below are also clamped to `max` (not to `1` or the default), so sending `limit=0` returns `max` records.
 
@@ -975,7 +974,7 @@ use Kalimulhaq\Qubuilder\Http\Requests\GetCollectionRequest;
 class ListUsersRequest extends GetCollectionRequest {}
 ```
 
-Validates: `select` (JSON), `filter` (JSON), `include` (JSON), `sort` (JSON), `page` (integer), `limit` (integer, max from config). The `group` parameter is accepted but not formally validated by this class.
+Validates: `select` (JSON), `filter` (JSON), `include` (JSON), `sort` (JSON), `group` (JSON), `page` (integer), `limit` (integer, max from config).
 
 **`GetResourceRequest`** — extends `GetCollectionRequest`, validates only `select` and `include` (suitable for single-resource endpoints).
 

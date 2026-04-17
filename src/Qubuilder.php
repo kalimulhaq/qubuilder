@@ -182,10 +182,8 @@ class Qubuilder
     {
         $this->filters = $filters;
 
-        $pageName = Helper::param('page');
-        $limitName = Helper::param('limit');
-        $this->page = Arr::get($this->filters, $pageName, 1);
-        $this->limit = Arr::get($this->filters, $limitName, config('qubuilder.limit.default', 15));
+        $this->page  = Arr::get($this->filters, 'page', 1);
+        $this->limit = Arr::get($this->filters, 'limit', config('qubuilder.limit.default', 15));
 
         return $this;
     }

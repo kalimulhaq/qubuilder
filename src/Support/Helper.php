@@ -62,7 +62,7 @@ class Helper
      * clamped between 1 and `maxLimit()`.
      *
      * @param  Request|null  $req
-     * @return array{select: array, filter: array, include: array, sort: array, page: int, limit: int}
+     * @return array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
      */
     public static function input(?Request $req = null): array
     {
@@ -74,12 +74,13 @@ class Helper
         $limit = $limit > 0 && $limit <= self::maxLimit() ? $limit : self::maxLimit();
 
         $return = [
-            'select' => self::inputAsArray($req->input(self::param('select'))),
-            'filter' => self::inputAsArray($req->input(self::param('filter'))),
+            'select'  => self::inputAsArray($req->input(self::param('select'))),
+            'filter'  => self::inputAsArray($req->input(self::param('filter'))),
             'include' => self::inputAsArray($req->input(self::param('include'))),
-            'sort' => self::inputAsArray($req->input(self::param('sort'))),
-            'page' => $req->integer(self::param('page'), 1),
-            'limit' => $limit,
+            'sort'    => self::inputAsArray($req->input(self::param('sort'))),
+            'group'   => self::inputAsArray($req->input(self::param('group'))),
+            'page'    => $req->integer(self::param('page'), 1),
+            'limit'   => $limit,
         ];
 
         return $return;

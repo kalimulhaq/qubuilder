@@ -49,7 +49,7 @@ class GetCollectionRequest extends FormRequest
     /**
      * The parsed filters array, populated after successful validation.
      *
-     * @var array{select: array, filter: array, include: array, sort: array, page: int, limit: int}
+     * @var array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
      */
     protected array $filters = [];
 
@@ -76,6 +76,7 @@ class GetCollectionRequest extends FormRequest
         $filter  = Helper::param('filter');
         $include = Helper::param('include');
         $sort    = Helper::param('sort');
+        $group   = Helper::param('group');
         $page    = Helper::param('page');
         $limit   = Helper::param('limit');
 
@@ -91,6 +92,9 @@ class GetCollectionRequest extends FormRequest
 
             // JSON object of column => direction sort pairs
             $sort    => ['sometimes', new ValidateJson],
+
+            // JSON array of column names to group results by
+            $group   => ['sometimes', new ValidateJson],
 
             // Positive integer page number
             $page    => ['sometimes', 'integer', 'min:1'],
@@ -113,7 +117,7 @@ class GetCollectionRequest extends FormRequest
      *
      * Returns a normalised array ready to pass directly to `Qubuilder::make()`.
      *
-     * @return array{select: array, filter: array, include: array, sort: array, page: int, limit: int}
+     * @return array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
      */
     public function filters(): array
     {

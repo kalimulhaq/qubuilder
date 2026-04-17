@@ -36,6 +36,12 @@ return [
         'sort' => null,
 
         /**
+         * The query string parameter to use for the `group`.
+         * Default is `group`.
+         */
+        'group' => null,
+
+        /**
          * The query string parameter to use for the `page`.
          * Default is `page`.
          */
