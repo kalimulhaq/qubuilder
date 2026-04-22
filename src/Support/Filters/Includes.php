@@ -47,7 +47,7 @@ class Includes
             $model = $builder->getModel();
 
             if (! empty($name)) {
-                $commonFilters = Arr::only($include, ['select', 'filter', 'include', 'sort', 'page', 'limit']);
+                $commonFilters = Arr::only($include, ['select', 'filter', 'include', 'sort', 'group', 'page', 'limit']);
                 $aggregateFilters = Arr::only($include, ['filter', 'page', 'limit']);
                 $aggregate = $include['aggregate'] ?? null;
                 $field = $include['field'] ?? null;

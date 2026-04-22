@@ -299,9 +299,6 @@ $filters = [
         "raw:FIELD(status,'active','pending','inactive')" => 'asc',  // orderByRaw
     ],
 
-    // ── Group By ──────────────────────────────────────────────────────────────
-    'group' => ['status', 'role'],
-
     // ── Pagination ────────────────────────────────────────────────────────────
     'page'  => 1,
     'limit' => 20,
@@ -414,8 +411,6 @@ The same payload encoded as JSON query-string parameters (GET) or request body (
         "raw:FIELD(status,'active','pending','inactive')": "asc"
     },
 
-    "group": ["status", "role"],
-
     "page": 1,
     "limit": 20
 }
@@ -495,7 +490,6 @@ WHERE (
             OR `country` = 'CA'
         )
 )
-GROUP BY `status`, `role`
 ORDER BY `created_at` DESC, `name` ASC, FIELD(status,'active','pending','inactive') ASC
 LIMIT 20 OFFSET 0
 ```
@@ -842,9 +836,53 @@ Prefix the column key with `raw:` to use `orderByRaw`. The resolved direction is
 
 Array of column names passed to `->groupBy()`.
 
+> **Rule:** every column in `select` must either appear in `group` or be an aggregate expression. If a column is in `group` but not in `select`, it won't appear in the result set — SQL will still accept it, but it is usually a mistake.
+
 ```php
-'group' => ['status', 'type']
-// GROUP BY status, type
+// Distinct status / role combinations, sorted alphabetically
+$filters = [
+    'select' => ['status', 'role'],
+    'group'  => ['status', 'role'],
+    'sort'   => ['status' => 'asc', 'role' => 'asc'],
+];
+
+$results = Qubuilder::make($filters, User::class)->query()->get();
+```
+
+Generated SQL:
+
+```sql
+SELECT `status`, `role`
+FROM `users`
+GROUP BY `status`, `role`
+ORDER BY `status` ASC, `role` ASC
+```
+
+Combined with aggregate includes the sub-query columns are independent of the main `select`/`group`, so you can mix freely:
+
+```php
+// Revenue summary per status
+$filters = [
+    'select'  => ['status'],
+    'group'   => ['status'],
+    'include' => [
+        ['name' => 'orders', 'aggregate' => 'count'],
+        ['name' => 'orders', 'aggregate' => 'sum', 'field' => 'total'],
+    ],
+    'sort'    => ['status' => 'asc'],
+];
+```
+
+Generated SQL:
+
+```sql
+SELECT
+    `status`,
+    (SELECT count(*) FROM `orders` WHERE `orders`.`user_id` = `users`.`id`) AS `orders_count`,
+    (SELECT sum(`total`) FROM `orders` WHERE `orders`.`user_id` = `users`.`id`) AS `orders_sum_total`
+FROM `users`
+GROUP BY `status`
+ORDER BY `status` ASC
 ```
 
 ---
@@ -864,17 +902,18 @@ Each include item is an array with a required `name` key (the Eloquent relation 
 
 ### With Sub-filters
 
-All top-level filter keys (`select`, `filter`, `include`, `sort`, `page`, `limit`) work inside include items to scope the loaded relationship.
+All top-level filter keys (`select`, `group`, `filter`, `include`, `sort`, `page`, `limit`) work inside include items to scope the loaded relationship.
 
 ```php
 'include' => [
     [
         'name'   => 'orders',
-        'select' => ['id', 'status', 'total'],
+        'select' => ['status', 'total'],
         'filter' => [
             'AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']],
         ],
-        'sort'   => ['created_at' => 'desc'],
+        'group'  => ['status'],
+        'sort'   => ['total' => 'desc'],
         'limit'  => 5,
     ],
 ]

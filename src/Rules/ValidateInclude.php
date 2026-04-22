@@ -20,6 +20,7 @@ use Kalimulhaq\Qubuilder\Rules\Concerns\DecodesJsonInput;
  * | `aggregate` | No       | `count` `avg` `sum` `min` `max`        | Aggregation function to apply              |
  * | `field`     | Cond.    | Non-empty string                       | Required when `aggregate` is avg/sum/min/max |
  * | `select`    | No       | Indexed string array                   | Columns to return from the relation        |
+ * | `group`     | No       | Indexed string array                   | GROUP BY columns for the relation          |
  * | `filter`    | No       | Filter object (see {@see ValidateFilter}) | Sub-filter applied to the relation      |
  * | `sort`      | No       | `{column: direction}` object           | Sort the relation results                  |
  * | `page`      | No       | Integer ≥ 1                            | Paginate the relation                      |
@@ -127,6 +128,15 @@ class ValidateInclude implements ValidationRule
             }
         }
 
+        // group: optional indexed array of strings
+        if (array_key_exists('group', $item)) {
+            if (! is_array($item['group'])) {
+                $errors[] = "The {$path}.group must be an array of strings.";
+            } else {
+                $errors = array_merge($errors, ValidateStringArray::validateItems($item['group'], "{$path}.group"));
+            }
+        }
+
         // filter: optional, validated as a filter node
         if (array_key_exists('filter', $item)) {
             if (! is_array($item['filter'])) {
@@ -151,6 +161,18 @@ class ValidateInclude implements ValidationRule
                 $errors[] = "The {$path}.include must be an array of include objects.";
             } else {
                 $errors = array_merge($errors, static::validateItems($item['include'], "{$path}.include"));
+            }
+        }
+
+        // cross-validation: all select columns must appear in group when both are present
+        if (array_key_exists('select', $item) && array_key_exists('group', $item)
+            && is_array($item['select']) && is_array($item['group'])
+            && ! empty($item['select']) && ! empty($item['group'])
+        ) {
+            $notInGroup = array_diff($item['select'], $item['group']);
+
+            if (! empty($notInGroup)) {
+                $errors[] = "The {$path}.select columns [" . implode(', ', $notInGroup) . '] are not in the group clause.';
             }
         }
 

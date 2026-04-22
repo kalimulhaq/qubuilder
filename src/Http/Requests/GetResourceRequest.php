@@ -53,6 +53,7 @@ class GetResourceRequest extends GetCollectionRequest
              *   JSON array of eager-load definitions. Each object must have a `name` key
              *   (the Eloquent relation method name) and may include:
              *   - select    — column subset (array of strings)
+             *   - group     — GROUP BY columns (array of strings)
              *   - filter    — sub-filter applied to the relation
              *   - sort      — sort the relation results
              *   - aggregate — one of: count avg sum min max

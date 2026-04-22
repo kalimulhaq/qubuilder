@@ -85,6 +85,7 @@ class GetCollectionRequest extends FormRequest
              *   JSON array of eager-load definitions. Each object must have a `name` key
              *   (the Eloquent relation method name) and may include:
              *   - select    — column subset (array of strings)
+             *   - group     — GROUP BY columns (array of strings)
              *   - filter    — sub-filter applied to the relation
              *   - sort      — sort the relation results
              *   - aggregate — one of: count avg sum min max
@@ -129,6 +130,37 @@ class GetCollectionRequest extends FormRequest
     }
 
     /**
+     * Cross-field validation: every selected column must appear in the group clause.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $selectParam = Helper::param('select');
+            $groupParam  = Helper::param('group');
+
+            if ($validator->errors()->has($selectParam) || $validator->errors()->has($groupParam)) {
+                return;
+            }
+
+            $select = $this->decodedInput($selectParam);
+            $group  = $this->decodedInput($groupParam);
+
+            if (empty($select) || empty($group)) {
+                return;
+            }
+
+            $notInGroup = array_diff($select, $group);
+
+            if (! empty($notInGroup)) {
+                $validator->errors()->add(
+                    $selectParam,
+                    'The following selected columns are not in the group clause: ' . implode(', ', $notInGroup) . '.'
+                );
+            }
+        });
+    }
+
+    /**
      * Parse and store all filter parameters after the request passes validation.
      */
     protected function passedValidation(): void
@@ -146,5 +178,24 @@ class GetCollectionRequest extends FormRequest
     public function filters(): array
     {
         return $this->filters;
+    }
+
+    private function decodedInput(string $param): array
+    {
+        $value = $this->input($param);
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
     }
 }

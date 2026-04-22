@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Kalimulhaq\Qubuilder\Support\Filters\Group;
 use Kalimulhaq\Qubuilder\Support\Filters\Includes;
 use Kalimulhaq\Qubuilder\Support\Filters\Select;
 use Kalimulhaq\Qubuilder\Support\Filters\Sorts;
@@ -56,6 +57,13 @@ class Qubuilder
      * @var Sorts
      */
     protected $sort;
+
+    /**
+     * The GROUP BY column list.
+     *
+     * @var Group
+     */
+    protected $group;
 
     /**
      * The page index to retrieve for pagination.
@@ -115,6 +123,14 @@ class Qubuilder
     public function sort(): Sorts
     {
         return $this->sort;
+    }
+
+    /**
+     * Get the GROUP BY column list.
+     */
+    public function group(): Group
+    {
+        return $this->group;
     }
 
     /**
@@ -286,9 +302,8 @@ class Qubuilder
     private function buildGroup()
     {
         $groupArray = Arr::get($this->filters, 'group');
-        if (! empty($groupArray)) {
-            $this->builder->groupBy((array) $groupArray);
-        }
+        $this->group = new Group($groupArray);
+        $this->builder = $this->group->build($this->builder);
     }
 
     private function includeTrashed(): bool
