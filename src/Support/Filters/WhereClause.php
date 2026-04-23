@@ -18,9 +18,11 @@ use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
  * the primary one (e.g. `has|>=`, `field|>`, `any|_like_`).
  *
  * Polymorphic (`MorphTo`) relations are detected automatically. When a `has` or
- * `doesnthave` filter targets a MorphTo relation, `whereHasMorph('*', ...)` is used
- * and morph types that lack the queried sub-relation are silently excluded via
- * `WHERE 0=1`, avoiding errors when only some morph types support the relation.
+ * `doesnthave` filter targets a MorphTo relation, the type list is pre-filtered in
+ * PHP (zero DB queries) using model metadata (`$fillable`, `$casts`, `$attributes`,
+ * timestamps, PK) so `whereHasMorph` only generates subqueries for types that can
+ * actually match. When no morph map is registered, `whereHasMorph('*', ...)` is used
+ * and incompatible types are excluded inside the callback via `WHERE 0=1`.
  */
 class WhereClause
 {
@@ -197,13 +199,16 @@ class WhereClause
 
         $value           = $this->value;
         $neededRelations = $this->extractHasRelations($value);
+        $neededFields    = $this->extractDirectFields($value);
         $resolvedTypes   = $this->filterMorphTypes($neededRelations);
 
-        // Morph map is configured: use the pre-filtered list.
-        // No extra DB query; excluded types generate no sub-query at all.
+        // Morph map is configured: pre-filter by relations then by model field metadata.
+        // No DB queries; excluded types generate no sub-query at all.
         if ($resolvedTypes !== null) {
+            $resolvedTypes = $this->filterMorphTypesByFields($resolvedTypes, $neededFields);
+
             if (empty($resolvedTypes)) {
-                return $builder; // No type supports the required relations — skip
+                return $builder;
             }
 
             return $builder->{$method}(
@@ -218,7 +223,7 @@ class WhereClause
         return $builder->{$method}(
             $this->field,
             '*',
-            function (Builder $sub) use ($value, $neededRelations) {
+            function (Builder $sub) use ($value, $neededRelations, $neededFields) {
                 $model = $sub->getModel();
 
                 foreach ($neededRelations as $relation) {
@@ -229,9 +234,82 @@ class WhereClause
                     }
                 }
 
+                foreach ($neededFields as $field) {
+                    if (! $this->modelMayHaveField($model, $field)) {
+                        $sub->whereRaw('0 = 1');
+
+                        return;
+                    }
+                }
+
                 Qubuilder::make(['filter' => $value], $sub)->query();
             }
         );
+    }
+
+    /**
+     * Determine whether a model likely has a given field as a real column.
+     *
+     * Uses only PHP-level model metadata — zero DB queries. Checks (in order):
+     * primary key, timestamp columns, `$fillable`, `$casts`, and `$attributes`.
+     * If `$fillable` is empty (model uses `$guarded` approach), returns `true`
+     * conservatively because columns cannot be inferred from metadata alone.
+     */
+    private function modelMayHaveField(object $model, string $field): bool
+    {
+        if ($field === $model->getKeyName()) {
+            return true;
+        }
+
+        if ($model->usesTimestamps() && in_array($field, [
+            $model->getCreatedAtColumn(),
+            $model->getUpdatedAtColumn(),
+        ], true)) {
+            return true;
+        }
+
+        $fillable = $model->getFillable();
+
+        if (! empty($fillable)) {
+            return in_array($field, $fillable, true)
+                || array_key_exists($field, $model->getCasts());
+        }
+
+        if (array_key_exists($field, $model->getCasts())
+            || array_key_exists($field, $model->getAttributes())
+        ) {
+            return true;
+        }
+
+        return true; // $fillable empty — guarded model, cannot exclude safely
+    }
+
+    /**
+     * Filter a list of FQCN classes to those whose models likely have all required fields.
+     *
+     * Instantiates each model once (no DB queries) and delegates to `modelMayHaveField`.
+     *
+     * @param  array<int, string>  $classes
+     * @param  array<int, string>  $neededFields
+     * @return array<int, string>
+     */
+    private function filterMorphTypesByFields(array $classes, array $neededFields): array
+    {
+        if (empty($neededFields)) {
+            return $classes;
+        }
+
+        return array_values(array_filter($classes, function (string $class) use ($neededFields) {
+            $model = new $class;
+
+            foreach ($neededFields as $field) {
+                if (! $this->modelMayHaveField($model, $field)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
     }
 
     /**
@@ -303,6 +381,41 @@ class WhereClause
         }
 
         return array_unique($relations);
+    }
+
+    /**
+     * Recursively collect direct column field names from non-relation conditions in a filter array.
+     *
+     * Excludes fields from `has`/`doesnthave` conditions (those are relation names, not columns).
+     * Used to guard morph type callbacks against missing columns.
+     *
+     * @return array<int, string>
+     */
+    private function extractDirectFields(mixed $filter): array
+    {
+        if (! is_array($filter)) {
+            return [];
+        }
+
+        $fields = [];
+
+        foreach ($filter as $condition) {
+            if (! is_array($condition)) {
+                continue;
+            }
+
+            if (isset($condition['field'])) {
+                $primaryOp = explode('|', strtolower($condition['op'] ?? '='))[0];
+                if (! in_array($primaryOp, ['has', 'doesnthave'], true)) {
+                    $fields[] = $condition['field'];
+                }
+            } else {
+                // AND / OR group — recurse
+                $fields = array_merge($fields, $this->extractDirectFields($condition));
+            }
+        }
+
+        return array_unique($fields);
     }
 
     private function where(string $type = ''): string
