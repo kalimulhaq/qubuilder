@@ -1,5 +1,31 @@
+# Dependencies
 /vendor
+/node_modules
+
+# Composer (library: lock file is not committed)
+composer.lock
+
+# Testing & coverage
 /coverage
+/build
 /.phpunit.cache
 .phpunit.result.cache
-composer.lock
+testbench.yaml
+
+# Environment
+.env
+.env.backup
+.env.*.local
+
+# IDE / editors
+.idea
+.fleet
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/*
