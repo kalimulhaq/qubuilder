@@ -6,7 +6,12 @@ on:
             - 'v*'
 
 jobs:
+    # Run the full test matrix (reusable run-tests workflow) before releasing.
+    test:
+        uses: ./.github/workflows/main.yml
+
     release:
+        needs: test
         runs-on: ubuntu-latest
 
         permissions:
