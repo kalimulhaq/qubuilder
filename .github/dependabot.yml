@@ -6,6 +6,12 @@ updates:
           interval: "weekly"
       labels:
           - "dependencies"
+      open-pull-requests-limit: 5
+      groups:
+          composer-minor:
+              update-types:
+                  - "minor"
+                  - "patch"
 
     - package-ecosystem: "github-actions"
       directory: "/"
@@ -13,3 +19,9 @@ updates:
           interval: "weekly"
       labels:
           - "dependencies"
+      open-pull-requests-limit: 5
+      groups:
+          actions-minor:
+              update-types:
+                  - "minor"
+                  - "patch"

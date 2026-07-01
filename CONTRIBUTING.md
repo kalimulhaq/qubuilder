@@ -40,9 +40,11 @@ Before submitting a pull request:
 
 If the project maintainer has any additional requirements, you will find them listed here.
 
-- **[PSR-2 Coding Standard](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-2-coding-style-guide.md)** - The easiest way to apply the conventions is to install [PHP Code Sniffer](https://pear.php.net/package/PHP_CodeSniffer).
+- **Code style ([Laravel Pint](https://laravel.com/docs/pint))** - Run `composer format` before committing (or `composer lint` to check). CI enforces this via the `code-style` workflow.
 
-- **Add tests!** - Your patch won't be accepted if it doesn't have tests.
+- **Static analysis ([PHPStan](https://phpstan.org) / [Larastan](https://github.com/larastan/larastan))** - Run `composer analyse`; it must pass at the configured level. New code should not add errors to `phpstan-baseline.neon`.
+
+- **Add tests!** - Your patch won't be accepted if it doesn't have tests. Run `composer test`.
 
 - **Document any change in behaviour** - Make sure the `README.md` and any other relevant documentation are kept up-to-date.
 
@@ -51,5 +53,27 @@ If the project maintainer has any additional requirements, you will find them li
 - **One pull request per feature** - If you want to do more than one thing, send multiple pull requests.
 
 - **Send coherent history** - Make sure each individual commit in your pull request is meaningful. If you had to make multiple intermediate commits while developing, please [squash them](https://www.git-scm.com/book/en/v2/Git-Tools-Rewriting-History#Changing-Multiple-Commit-Messages) before submitting.
+
+## Local development
+
+```bash
+composer install      # install dependencies
+composer test         # run the PHPUnit test suite
+composer analyse      # run PHPStan (Larastan) static analysis
+composer format       # apply Laravel Pint code style (composer lint to only check)
+```
+
+The test suite runs on an in-memory SQLite database via Orchestra Testbench, so the `pdo_sqlite` PHP extension must be enabled locally.
+
+## Continuous integration
+
+Every push and pull request runs three workflows: `run-tests` (PHP 8.3/8.4 × Laravel 11/12/13 × prefer-lowest/prefer-stable), `phpstan`, and `code-style`. A release is only cut (via a `v*` tag) after the full test matrix passes.
+
+## Automated dependency updates
+
+Dependency updates are managed by [Dependabot](.github/dependabot.yml):
+
+- **Patch/minor** updates (composer and GitHub Actions) are grouped into a single PR per ecosystem and **auto-merged once CI passes** (see `.github/workflows/dependabot-auto-merge.yml`).
+- **Major** updates are opened as individual PRs and require manual review and merge.
 
 **Happy coding**!

@@ -2,15 +2,9 @@ name: code-style
 
 on:
     push:
-        paths:
-            - '**.php'
-            - 'pint.json'
-            - '.github/workflows/pint.yml'
+        branches: [main, master]
     pull_request:
-        paths:
-            - '**.php'
-            - 'pint.json'
-            - '.github/workflows/pint.yml'
+        branches: [main, master]
 
 jobs:
     pint:
