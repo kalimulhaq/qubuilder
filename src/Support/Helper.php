@@ -2,6 +2,7 @@
 
 namespace Kalimulhaq\Qubuilder\Support;
 
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use ReflectionClass;
@@ -74,7 +75,9 @@ class Helper
         $return = [
             'select' => self::inputAsArray($req->input(self::param('select'))),
             'filter' => self::inputAsArray($req->input(self::param('filter'))),
-            'include' => self::inputAsArray($req->input(self::param('include'))),
+            'include' => self::allowInclude()
+                ? self::inputAsArray($req->input(self::param('include')))
+                : [],
             'sort' => self::inputAsArray($req->input(self::param('sort'))),
             'group' => self::inputAsArray($req->input(self::param('group'))),
             'page' => $req->integer(self::param('page'), 1),
@@ -94,6 +97,38 @@ class Helper
         $limit_max = config('qubuilder.limit.max', 50);
 
         return ! empty($limit_max) ? $limit_max : 50;
+    }
+
+    /**
+     * Whether unrestricted column selection ("SELECT *") is allowed.
+     *
+     * Reads `qubuilder.allow_select_all` from config (default: true). When false,
+     * `select` becomes required, the "*" wildcard is rejected, and the builder
+     * falls back to the model's primary key when no explicit columns are given.
+     */
+    public static function allowSelectAll(): bool
+    {
+        if (! Container::getInstance()->bound('config')) {
+            return true;
+        }
+
+        return (bool) config('qubuilder.allow_select_all', true);
+    }
+
+    /**
+     * Whether relation eager-loading via `include` is allowed.
+     *
+     * Reads `qubuilder.allow_include` from config (default: true). When false,
+     * the `include` parameter is stripped from the parsed input, its validation
+     * is skipped, and the builder never loads relations.
+     */
+    public static function allowInclude(): bool
+    {
+        if (! Container::getInstance()->bound('config')) {
+            return true;
+        }
+
+        return (bool) config('qubuilder.allow_include', true);
     }
 
     /**

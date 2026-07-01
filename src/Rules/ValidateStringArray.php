@@ -25,6 +25,11 @@ class ValidateStringArray implements ValidationRule
 {
     use DecodesJsonInput;
 
+    /**
+     * @param  bool  $forbidWildcard  When true, the "*" (select-all) column is rejected.
+     */
+    public function __construct(private bool $forbidWildcard = false) {}
+
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $decoded = $this->decode($value);
@@ -37,6 +42,10 @@ class ValidateStringArray implements ValidationRule
 
         foreach (static::validateItems($decoded, ':attribute') as $error) {
             $fail($error);
+        }
+
+        if ($this->forbidWildcard && in_array('*', $decoded, true)) {
+            $fail('The :attribute must list explicit columns; "*" (select all) is not allowed.');
         }
     }
 

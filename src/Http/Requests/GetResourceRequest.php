@@ -40,32 +40,42 @@ class GetResourceRequest extends GetCollectionRequest
         $select = Helper::param('select');
         $include = Helper::param('include');
 
-        return [
+        $selectRules = Helper::allowSelectAll()
+            ? ['sometimes', new ValidateStringArray]
+            : ['required', new ValidateStringArray(forbidWildcard: true)];
+
+        $rules = [
             /**
              * @queryParam select string
              *   Indexed JSON array of column names to include in the response.
-             *   Omit to return all columns.
+             *   Omit to return all columns. When `qubuilder.allow_select_all` is
+             *   disabled, this parameter is required and "*" is rejected.
              *   Example: ["id","name","email"]
              */
-            $select => ['sometimes', new ValidateStringArray],
-
-            /**
-             * @queryParam include string
-             *   JSON array of eager-load definitions. Each object must have a `name` key
-             *   (the Eloquent relation method name) and may include:
-             *   - select    — column subset (array of strings)
-             *   - group     — GROUP BY columns (array of strings)
-             *   - filter    — sub-filter applied to the relation
-             *   - sort      — sort the relation results
-             *   - aggregate — one of: count avg sum min max
-             *   - field     — required when aggregate is avg, sum, min, or max
-             *   - page / limit — paginate the relation
-             *   - include   — nested includes (recursive)
-             *
-             *   Example: [{"name":"profile"},{"name":"roles","select":["id","name"]}]
-             */
-            $include => ['sometimes', new ValidateInclude],
+            $select => $selectRules,
         ];
+
+        /**
+         * @queryParam include string
+         *   JSON array of eager-load definitions. Each object must have a `name` key
+         *   (the Eloquent relation method name) and may include:
+         *   - select    — column subset (array of strings)
+         *   - group     — GROUP BY columns (array of strings)
+         *   - filter    — sub-filter applied to the relation
+         *   - sort      — sort the relation results
+         *   - aggregate — one of: count avg sum min max
+         *   - field     — required when aggregate is avg, sum, min, or max
+         *   - page / limit — paginate the relation
+         *   - include   — nested includes (recursive)
+         *
+         *   Omitted entirely when `qubuilder.allow_include` is disabled.
+         *   Example: [{"name":"profile"},{"name":"roles","select":["id","name"]}]
+         */
+        if (Helper::allowInclude()) {
+            $rules[$include] = ['sometimes', new ValidateInclude];
+        }
+
+        return $rules;
     }
 
     /**

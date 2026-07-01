@@ -5,6 +5,7 @@ namespace Kalimulhaq\Qubuilder\Support\Filters;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
+use Kalimulhaq\Qubuilder\Support\Helper;
 
 /**
  * Holds the column list and applies a SELECT clause to the builder.
@@ -59,9 +60,23 @@ class Select implements Arrayable
 
     /**
      * Apply the column selection to the builder.
+     *
+     * When `qubuilder.allow_select_all` is disabled, the "*" wildcard is stripped
+     * and the selection falls back to the model's primary key only if no explicit
+     * columns remain — preventing unrestricted "SELECT *" queries.
      */
     public function build(Builder $builder): Builder
     {
-        return $builder->select($this->columns);
+        $columns = $this->columns;
+
+        if (! Helper::allowSelectAll()) {
+            $columns = array_values(array_filter($columns, fn ($column) => $column !== '*'));
+
+            if (empty($columns)) {
+                $columns = [$builder->getModel()->getKeyName()];
+            }
+        }
+
+        return $builder->select($columns);
     }
 }

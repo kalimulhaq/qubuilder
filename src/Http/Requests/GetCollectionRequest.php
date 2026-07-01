@@ -56,14 +56,19 @@ class GetCollectionRequest extends FormRequest
         $page = Helper::param('page');
         $limit = Helper::param('limit');
 
-        return [
+        $selectRules = Helper::allowSelectAll()
+            ? ['sometimes', new ValidateStringArray]
+            : ['required', new ValidateStringArray(forbidWildcard: true)];
+
+        $rules = [
             /**
              * @queryParam select string
              *   Indexed JSON array of column names to include in the response.
-             *   Omit to return all columns.
+             *   Omit to return all columns. When `qubuilder.allow_select_all` is
+             *   disabled, this parameter is required and "*" is rejected.
              *   Example: ["id","name","email"]
              */
-            $select => ['sometimes', new ValidateStringArray],
+            $select => $selectRules,
 
             /**
              * @queryParam filter string
@@ -80,23 +85,6 @@ class GetCollectionRequest extends FormRequest
              *   Example: {"AND":[{"field":"status","op":"=","value":"active"},{"field":"age","op":">=","value":18}]}
              */
             $filter => ['sometimes', new ValidateFilter],
-
-            /**
-             * @queryParam include string
-             *   JSON array of eager-load definitions. Each object must have a `name` key
-             *   (the Eloquent relation method name) and may include:
-             *   - select    — column subset (array of strings)
-             *   - group     — GROUP BY columns (array of strings)
-             *   - filter    — sub-filter applied to the relation
-             *   - sort      — sort the relation results
-             *   - aggregate — one of: count avg sum min max
-             *   - field     — required when aggregate is avg, sum, min, or max
-             *   - page / limit — paginate the relation
-             *   - include   — nested includes (recursive)
-             *
-             *   Example: [{"name":"roles","select":["id","name"]},{"name":"orders","aggregate":"count"}]
-             */
-            $include => ['sometimes', new ValidateInclude],
 
             /**
              * @queryParam sort string
@@ -128,6 +116,28 @@ class GetCollectionRequest extends FormRequest
              */
             $limit => ['sometimes', 'integer', 'between:1,'.Helper::maxLimit()],
         ];
+
+        /**
+         * @queryParam include string
+         *   JSON array of eager-load definitions. Each object must have a `name` key
+         *   (the Eloquent relation method name) and may include:
+         *   - select    — column subset (array of strings)
+         *   - group     — GROUP BY columns (array of strings)
+         *   - filter    — sub-filter applied to the relation
+         *   - sort      — sort the relation results
+         *   - aggregate — one of: count avg sum min max
+         *   - field     — required when aggregate is avg, sum, min, or max
+         *   - page / limit — paginate the relation
+         *   - include   — nested includes (recursive)
+         *
+         *   Omitted entirely when `qubuilder.allow_include` is disabled.
+         *   Example: [{"name":"roles","select":["id","name"]},{"name":"orders","aggregate":"count"}]
+         */
+        if (Helper::allowInclude()) {
+            $rules[$include] = ['sometimes', new ValidateInclude];
+        }
+
+        return $rules;
     }
 
     /**

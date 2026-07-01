@@ -280,7 +280,7 @@ class Qubuilder
      */
     private function buildInclude()
     {
-        $includeArray = Arr::get($this->filters, 'include');
+        $includeArray = Helper::allowInclude() ? Arr::get($this->filters, 'include') : [];
         $this->include = new Includes($includeArray);
         $this->builder = $this->include->build($this->builder);
     }

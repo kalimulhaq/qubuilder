@@ -3,6 +3,35 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Allow "SELECT *"
+    |--------------------------------------------------------------------------
+    |
+    | When false, unrestricted column selection is disabled: the `select`
+    | parameter becomes required (at the top level and inside each non-aggregate
+    | include), the wildcard "*" is rejected, and the query builder falls back to
+    | the model's primary key only when no explicit columns are provided.
+    |
+    | Defaults to true for backward compatibility.
+    |
+     */
+    'allow_select_all' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allow Includes
+    |--------------------------------------------------------------------------
+    |
+    | When false, relation eager-loading is disabled entirely: the `include`
+    | parameter is stripped from the parsed input, its validation is skipped, and
+    | the query builder never loads relations.
+    |
+    | Defaults to true for backward compatibility.
+    |
+     */
+    'allow_include' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Query String Parameters Name
     |--------------------------------------------------------------------------
     |

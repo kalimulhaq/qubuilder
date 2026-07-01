@@ -52,6 +52,15 @@ php artisan vendor:publish --provider="Kalimulhaq\Qubuilder\QubuilderServiceProv
 ```php
 return [
 
+    // When false: `select` becomes required (top level and inside each
+    // non-aggregate include), the "*" wildcard is rejected, and the builder
+    // falls back to the model's primary key when no columns are given.
+    'allow_select_all' => true,
+
+    // When false: the `include` parameter is stripped from the parsed input,
+    // its validation is skipped, and no relations are ever eager-loaded.
+    'allow_include' => true,
+
     /*
     |--------------------------------------------------------------------------
     | HTTP Parameter Names
@@ -78,6 +87,10 @@ return [
 ```
 
 > **Limit clamping:** Any `limit` value above `max` is silently clamped to `max`. Values of `0` or below are also clamped to `max` (not to `1` or the default), so sending `limit=0` returns `max` records.
+
+> **`allow_select_all`** (default `true`): leave enabled to keep the current behaviour where an omitted `select` returns all columns. Set to `false` to force clients to request explicit columns — `select` becomes required at the top level and inside every non-aggregate include, the `"*"` wildcard is rejected by validation, and if a query still reaches the builder without columns it selects the model's primary key only. Aggregate includes (`count`, `avg`, `sum`, `min`, `max`) are exempt since they select no columns.
+
+> **`allow_include`** (default `true`): leave enabled to allow relation eager-loading. Set to `false` to disable includes entirely — the `include` parameter is silently stripped from the request (no validation error) and the builder never loads relations, even nested ones.
 
 ---
 

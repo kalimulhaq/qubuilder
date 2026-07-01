@@ -5,6 +5,7 @@ namespace Kalimulhaq\Qubuilder\Rules;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Kalimulhaq\Qubuilder\Rules\Concerns\DecodesJsonInput;
+use Kalimulhaq\Qubuilder\Support\Helper;
 
 /**
  * Validates that the value is a well-formed Qubuilder `include` array.
@@ -120,13 +121,27 @@ class ValidateInclude implements ValidationRule
             }
         }
 
-        // select: optional indexed array of strings
+        // select: optional indexed array of strings.
+        //
+        // When `qubuilder.allow_select_all` is disabled, a non-aggregate include must
+        // carry an explicit, non-wildcard `select` — aggregates select no columns and
+        // are therefore exempt.
+        $isAggregate = isset($item['aggregate']);
+
         if (array_key_exists('select', $item)) {
             if (! is_array($item['select'])) {
                 $errors[] = "The {$path}.select must be an array of strings.";
             } else {
                 $errors = array_merge($errors, ValidateStringArray::validateItems($item['select'], "{$path}.select"));
+
+                if (! Helper::allowSelectAll() && ! $isAggregate && empty(array_filter($item['select']))) {
+                    $errors[] = "The {$path}.select is required and must list explicit columns.";
+                } elseif (! Helper::allowSelectAll() && in_array('*', $item['select'], true)) {
+                    $errors[] = "The {$path}.select must list explicit columns; \"*\" (select all) is not allowed.";
+                }
             }
+        } elseif (! Helper::allowSelectAll() && ! $isAggregate) {
+            $errors[] = "The {$path}.select is required and must list explicit columns.";
         }
 
         // group: optional indexed array of strings
