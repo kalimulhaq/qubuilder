@@ -9,13 +9,13 @@ class GetResourceRequestTest extends TestCase
     public function test_validates_and_returns_only_select_and_include(): void
     {
         $response = $this->postJson('/test/resource', [
-            'select'  => ['id', 'name'],
+            'select' => ['id', 'name'],
             'include' => [['name' => 'profile']],
         ]);
 
         $response->assertOk();
         $response->assertExactJson([
-            'select'  => ['id', 'name'],
+            'select' => ['id', 'name'],
             'include' => [['name' => 'profile']],
         ]);
     }
@@ -27,8 +27,8 @@ class GetResourceRequestTest extends TestCase
         $response = $this->postJson('/test/resource', [
             'select' => ['id'],
             'filter' => [['field' => 'status', 'op' => 'bogus', 'value' => 'x']],
-            'sort'   => ['name' => 'sideways'],
-            'page'   => 'not-an-int',
+            'sort' => ['name' => 'sideways'],
+            'page' => 'not-an-int',
         ]);
 
         $response->assertOk();

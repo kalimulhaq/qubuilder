@@ -71,13 +71,13 @@ class HelperTest extends TestCase
     public function test_input_extracts_and_decodes_all_params(): void
     {
         $req = Request::create('/', 'GET', [
-            'select'  => '["id","name"]',
-            'filter'  => '{"AND":[{"field":"status","op":"=","value":"active"}]}',
+            'select' => '["id","name"]',
+            'filter' => '{"AND":[{"field":"status","op":"=","value":"active"}]}',
             'include' => '[{"name":"orders"}]',
-            'sort'    => '{"name":"asc"}',
-            'group'   => '["status"]',
-            'page'    => 3,
-            'limit'   => 20,
+            'sort' => '{"name":"asc"}',
+            'group' => '["status"]',
+            'page' => 3,
+            'limit' => 20,
         ]);
 
         $out = Helper::input($req);
@@ -110,11 +110,11 @@ class HelperTest extends TestCase
     public static function limitClampProvider(): array
     {
         return [
-            'zero clamps to max'      => [0, 50],
-            'negative clamps to max'  => [-5, 50],
+            'zero clamps to max' => [0, 50],
+            'negative clamps to max' => [-5, 50],
             'above max clamps to max' => [100, 50],
-            'valid passes through'    => [20, 20],
-            'max boundary passes'     => [50, 50],
+            'valid passes through' => [20, 20],
+            'max boundary passes' => [50, 50],
         ];
     }
 
@@ -133,9 +133,9 @@ class HelperTest extends TestCase
     public function test_select_include_sort_extractors(): void
     {
         $source = [
-            'select'  => ['id'],
+            'select' => ['id'],
             'include' => [['name' => 'orders'], ['name' => 'profile']],
-            'sort'    => ['name' => 'asc'],
+            'sort' => ['name' => 'asc'],
         ];
 
         $this->assertSame(['id'], Helper::select($source));

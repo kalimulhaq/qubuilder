@@ -32,10 +32,10 @@ class MorphTest extends TestCase
     {
         $this->registerMorphMap();
 
-        $author  = User::create(['name' => 'Author']);
+        $author = User::create(['name' => 'Author']);
         $channel = User::create(['name' => 'Channel']);
 
-        $post  = Post::create(['title' => 'P', 'author_id' => $author->id]);
+        $post = Post::create(['title' => 'P', 'author_id' => $author->id]);
         $video = Video::create(['title' => 'V', 'channel_id' => $channel->id]);
 
         $post->comments()->create(['body' => 'on post']);
@@ -43,7 +43,7 @@ class MorphTest extends TestCase
 
         $comments = Qubuilder::make([
             'include' => [[
-                'name'    => 'commentable',
+                'name' => 'commentable',
                 'include' => [['name' => 'author'], ['name' => 'channel']],
             ]],
         ], Comment::class)->query()->get();
@@ -63,10 +63,10 @@ class MorphTest extends TestCase
     {
         // No morphMap registered -> morph type is stored as the FQCN, and the map is
         // keyed by FQCN (Post::class / Video::class). Mirrors the real-world usage.
-        $author  = User::create(['name' => 'Author']);
+        $author = User::create(['name' => 'Author']);
         $channel = User::create(['name' => 'Channel']);
 
-        $post  = Post::create(['title' => 'P', 'author_id' => $author->id]);
+        $post = Post::create(['title' => 'P', 'author_id' => $author->id]);
         $video = Video::create(['title' => 'V', 'channel_id' => $channel->id]);
 
         $onPost = new Reaction;
@@ -77,12 +77,12 @@ class MorphTest extends TestCase
 
         $reactions = Qubuilder::make([
             'include' => [[
-                'name'    => 'reactable',
+                'name' => 'reactable',
                 'include' => [['name' => 'author'], ['name' => 'channel']],
             ]],
         ], Reaction::class)->query()->get();
 
-        $postReaction  = $reactions->first(fn ($r) => $r->reactable_type === Post::class);
+        $postReaction = $reactions->first(fn ($r) => $r->reactable_type === Post::class);
         $videoReaction = $reactions->first(fn ($r) => $r->reactable_type === Video::class);
 
         $this->assertInstanceOf(Post::class, $postReaction->reactable);
@@ -101,14 +101,14 @@ class MorphTest extends TestCase
         $this->registerMorphMap();
 
         $author = User::create(['name' => 'Author']);
-        $post   = Post::create(['title' => 'P', 'author_id' => $author->id]);
+        $post = Post::create(['title' => 'P', 'author_id' => $author->id]);
 
         $reaction = new Reaction;
         $reaction->reactable()->associate($post)->save();
 
         $loaded = Qubuilder::make([
             'include' => [[
-                'name'    => 'reactable',
+                'name' => 'reactable',
                 'include' => [['name' => 'author']],
             ]],
         ], Reaction::class)->query()->first();
@@ -125,7 +125,7 @@ class MorphTest extends TestCase
         $this->registerMorphMap();
 
         $matching = Post::create(['title' => 'Laravel']);
-        $other    = Post::create(['title' => 'Other']);
+        $other = Post::create(['title' => 'Other']);
 
         $matching->comments()->create(['body' => 'c1']);
         $other->comments()->create(['body' => 'c2']);
@@ -133,7 +133,7 @@ class MorphTest extends TestCase
         $comments = Qubuilder::make([
             'filter' => [[
                 'field' => 'commentable',
-                'op'    => 'has',
+                'op' => 'has',
                 'value' => ['AND' => [['field' => 'title', 'op' => '=', 'value' => 'Laravel']]],
             ]],
         ], Comment::class)->query()->get();
@@ -144,7 +144,7 @@ class MorphTest extends TestCase
     public function test_where_has_morph_without_morph_map_uses_wildcard(): void
     {
         // No morphMap registered -> commentable_type stored as FQCN, '*' path used.
-        $post  = Post::create(['title' => 'Laravel']);
+        $post = Post::create(['title' => 'Laravel']);
         $video = Video::create(['title' => 'Other']);
 
         $post->comments()->create(['body' => 'c1']);
@@ -153,7 +153,7 @@ class MorphTest extends TestCase
         $comments = Qubuilder::make([
             'filter' => [[
                 'field' => 'commentable',
-                'op'    => 'has',
+                'op' => 'has',
                 'value' => ['AND' => [['field' => 'title', 'op' => '=', 'value' => 'Laravel']]],
             ]],
         ], Comment::class)->query()->get();

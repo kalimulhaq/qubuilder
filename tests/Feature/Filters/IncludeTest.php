@@ -24,7 +24,7 @@ class IncludeTest extends TestCase
 
         $loaded = Qubuilder::make([
             'include' => [[
-                'name'   => 'orders',
+                'name' => 'orders',
                 'filter' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
             ]],
         ], User::class)->query()->first();
@@ -35,13 +35,13 @@ class IncludeTest extends TestCase
 
     public function test_nested_include(): void
     {
-        $user  = User::create(['name' => 'Buyer']);
+        $user = User::create(['name' => 'Buyer']);
         $order = $user->orders()->create(['status' => 'completed']);
         $order->items()->create(['product_id' => 'P1', 'qty' => 2]);
 
         $loaded = Qubuilder::make([
             'include' => [[
-                'name'    => 'orders',
+                'name' => 'orders',
                 'include' => [['name' => 'items']],
             ]],
         ], User::class)->query()->first();
@@ -92,10 +92,10 @@ class IncludeTest extends TestCase
 
         $loaded = Qubuilder::make([
             'include' => [[
-                'name'      => 'orders',
+                'name' => 'orders',
                 'aggregate' => 'sum',
-                'field'     => 'total',
-                'filter'    => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
+                'field' => 'total',
+                'filter' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
             ]],
         ], User::class)->query()->first();
 
@@ -112,9 +112,9 @@ class IncludeTest extends TestCase
 
         $loaded = Qubuilder::make([
             'include' => [[
-                'name'      => 'orders',
+                'name' => 'orders',
                 'aggregate' => 'count',
-                'filter'    => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
+                'filter' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
             ]],
         ], User::class)->query()->first();
 

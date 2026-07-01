@@ -19,7 +19,7 @@ class Helper
      * when the config value is null or empty.
      *
      * @param  string  $name  Internal key (e.g. `'select'`, `'filter'`, `'sort'`).
-     * @return string         The actual HTTP request parameter name to read.
+     * @return string The actual HTTP request parameter name to read.
      */
     public static function param(string $name): string
     {
@@ -33,11 +33,10 @@ class Helper
      *
      * Returns an empty array when the input is neither iterable nor valid JSON.
      *
-     * @param  mixed     $input        A JSON-encoded string or any iterable.
-     * @param  bool|null $associative  Decode JSON objects as associative arrays (default: true).
-     * @param  int       $depth        Maximum JSON decoding depth (default: 512).
-     * @param  int       $flags        JSON decoding flags (default: 0).
-     * @return array
+     * @param  mixed  $input  A JSON-encoded string or any iterable.
+     * @param  bool|null  $associative  Decode JSON objects as associative arrays (default: true).
+     * @param  int  $depth  Maximum JSON decoding depth (default: 512).
+     * @param  int  $flags  JSON decoding flags (default: 0).
      */
     public static function inputAsArray(mixed $input, ?bool $associative = true, int $depth = 512, int $flags = 0): array
     {
@@ -61,7 +60,6 @@ class Helper
      * Falls back to `request()` when `$req` is null. The `limit` value is
      * clamped between 1 and `maxLimit()`.
      *
-     * @param  Request|null  $req
      * @return array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
      */
     public static function input(?Request $req = null): array
@@ -74,13 +72,13 @@ class Helper
         $limit = $limit > 0 && $limit <= self::maxLimit() ? $limit : self::maxLimit();
 
         $return = [
-            'select'  => self::inputAsArray($req->input(self::param('select'))),
-            'filter'  => self::inputAsArray($req->input(self::param('filter'))),
+            'select' => self::inputAsArray($req->input(self::param('select'))),
+            'filter' => self::inputAsArray($req->input(self::param('filter'))),
             'include' => self::inputAsArray($req->input(self::param('include'))),
-            'sort'    => self::inputAsArray($req->input(self::param('sort'))),
-            'group'   => self::inputAsArray($req->input(self::param('group'))),
-            'page'    => $req->integer(self::param('page'), 1),
-            'limit'   => $limit,
+            'sort' => self::inputAsArray($req->input(self::param('sort'))),
+            'group' => self::inputAsArray($req->input(self::param('group'))),
+            'page' => $req->integer(self::param('page'), 1),
+            'limit' => $limit,
         ];
 
         return $return;
@@ -90,8 +88,6 @@ class Helper
      * Get the configured maximum records-per-page limit.
      *
      * Reads `qubuilder.limit.max` from config (default: 50).
-     *
-     * @return int
      */
     public static function maxLimit(): int
     {
@@ -104,7 +100,6 @@ class Helper
      * Extract the `select` array from a filters source array.
      *
      * @param  array  $source  A filters array (e.g. from `Helper::input()`).
-     * @return array
      */
     public static function select(array $source): array
     {
@@ -114,9 +109,8 @@ class Helper
     /**
      * Extract the `include` array from a filters source array.
      *
-     * @param  array  $source    A filters array (e.g. from `Helper::input()`).
-     * @param  bool   $nameOnly  When true, returns only the `name` values as a flat array.
-     * @return array
+     * @param  array  $source  A filters array (e.g. from `Helper::input()`).
+     * @param  bool  $nameOnly  When true, returns only the `name` values as a flat array.
      */
     public static function include(array $source, bool $nameOnly = false): array
     {
@@ -144,9 +138,8 @@ class Helper
      * Returns `null` if the method does not exist, `'void'` if no return type
      * is declared, or the fully-qualified class name of the return type.
      *
-     * @param  string  $class   Fully-qualified class name.
+     * @param  string  $class  Fully-qualified class name.
      * @param  string  $method  Method name to inspect.
-     * @return string|null
      */
     public static function getReturnTypes(string $class, string $method): ?string
     {

@@ -2,6 +2,7 @@
 
 namespace Kalimulhaq\Qubuilder\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Kalimulhaq\Qubuilder\Rules\ValidateFilter;
 use Kalimulhaq\Qubuilder\Rules\ValidateInclude;
@@ -43,17 +44,17 @@ class GetCollectionRequest extends FormRequest
      * against the exact structure the package expects. The `limit` is capped at
      * the value configured in `qubuilder.limit.max`.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $select  = Helper::param('select');
-        $filter  = Helper::param('filter');
+        $select = Helper::param('select');
+        $filter = Helper::param('filter');
         $include = Helper::param('include');
-        $sort    = Helper::param('sort');
-        $group   = Helper::param('group');
-        $page    = Helper::param('page');
-        $limit   = Helper::param('limit');
+        $sort = Helper::param('sort');
+        $group = Helper::param('group');
+        $page = Helper::param('page');
+        $limit = Helper::param('limit');
 
         return [
             /**
@@ -62,7 +63,7 @@ class GetCollectionRequest extends FormRequest
              *   Omit to return all columns.
              *   Example: ["id","name","email"]
              */
-            $select  => ['sometimes', new ValidateStringArray],
+            $select => ['sometimes', new ValidateStringArray],
 
             /**
              * @queryParam filter string
@@ -78,7 +79,7 @@ class GetCollectionRequest extends FormRequest
              *
              *   Example: {"AND":[{"field":"status","op":"=","value":"active"},{"field":"age","op":">=","value":18}]}
              */
-            $filter  => ['sometimes', new ValidateFilter],
+            $filter => ['sometimes', new ValidateFilter],
 
             /**
              * @queryParam include string
@@ -103,21 +104,21 @@ class GetCollectionRequest extends FormRequest
              *   (case-insensitive). Prefix a key with raw: for raw SQL expressions.
              *   Example: {"created_at":"desc","name":"asc"}
              */
-            $sort    => ['sometimes', new ValidateSort],
+            $sort => ['sometimes', new ValidateSort],
 
             /**
              * @queryParam group string
              *   Indexed JSON array of column names to add to the GROUP BY clause.
              *   Example: ["status","type"]
              */
-            $group   => ['sometimes', new ValidateStringArray],
+            $group => ['sometimes', new ValidateStringArray],
 
             /**
              * @queryParam page integer
              *   1-based page number for pagination. Defaults to 1.
              *   Example: 1
              */
-            $page    => ['sometimes', 'integer', 'min:1'],
+            $page => ['sometimes', 'integer', 'min:1'],
 
             /**
              * @queryParam limit integer
@@ -125,7 +126,7 @@ class GetCollectionRequest extends FormRequest
              *   (default 50, set via qubuilder.limit.max). Defaults to 15.
              *   Example: 15
              */
-            $limit   => ['sometimes', 'integer', 'between:1,'.Helper::maxLimit()],
+            $limit => ['sometimes', 'integer', 'between:1,'.Helper::maxLimit()],
         ];
     }
 
@@ -136,14 +137,14 @@ class GetCollectionRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $selectParam = Helper::param('select');
-            $groupParam  = Helper::param('group');
+            $groupParam = Helper::param('group');
 
             if ($validator->errors()->has($selectParam) || $validator->errors()->has($groupParam)) {
                 return;
             }
 
             $select = $this->decodedInput($selectParam);
-            $group  = $this->decodedInput($groupParam);
+            $group = $this->decodedInput($groupParam);
 
             if (empty($select) || empty($group)) {
                 return;
@@ -154,7 +155,7 @@ class GetCollectionRequest extends FormRequest
             if (! empty($notInGroup)) {
                 $validator->errors()->add(
                     $selectParam,
-                    'The following selected columns are not in the group clause: ' . implode(', ', $notInGroup) . '.'
+                    'The following selected columns are not in the group clause: '.implode(', ', $notInGroup).'.'
                 );
             }
         });

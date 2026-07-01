@@ -29,7 +29,7 @@ class Where
     private $conjunction;
 
     /**
-     * @param  array|null   $where        Filter conditions / nested groups.
+     * @param  array|null  $where  Filter conditions / nested groups.
      * @param  string|null  $conjunction  'AND' or 'OR' (default: 'AND').
      */
     public function __construct(?array $where = [], ?string $conjunction = 'AND')
@@ -40,9 +40,6 @@ class Where
 
     /**
      * Apply all conditions in this group to the given builder.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {

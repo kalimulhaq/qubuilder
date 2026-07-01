@@ -2,6 +2,7 @@
 
 namespace Kalimulhaq\Qubuilder\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Arr;
 use Kalimulhaq\Qubuilder\Rules\ValidateInclude;
 use Kalimulhaq\Qubuilder\Rules\ValidateStringArray;
@@ -32,11 +33,11 @@ class GetResourceRequest extends GetCollectionRequest
      *
      * Only `select` and `include` are validated for single-resource endpoints.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $select  = Helper::param('select');
+        $select = Helper::param('select');
         $include = Helper::param('include');
 
         return [
@@ -46,7 +47,7 @@ class GetResourceRequest extends GetCollectionRequest
              *   Omit to return all columns.
              *   Example: ["id","name","email"]
              */
-            $select  => ['sometimes', new ValidateStringArray],
+            $select => ['sometimes', new ValidateStringArray],
 
             /**
              * @queryParam include string

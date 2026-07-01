@@ -155,7 +155,7 @@ class ValidateFilterTest extends TestCase
         $this->assertRulePasses($this->rule(), ['field' => 'orders', 'op' => 'has', 'value' => 3]);
         $this->assertRulePasses($this->rule(), [
             'field' => 'orders',
-            'op'    => 'has',
+            'op' => 'has',
             'value' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'done']]],
         ]);
         // No value at all is allowed for has

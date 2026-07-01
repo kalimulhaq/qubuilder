@@ -96,7 +96,7 @@ class ValidateFilter implements ValidationRule
     /**
      * Recursively validate a filter node (condition, group, or list).
      *
-     * @return string[]  Error messages; empty when the node is valid.
+     * @return string[] Error messages; empty when the node is valid.
      */
     public static function validateNode(array $node, string $path): array
     {
@@ -111,6 +111,7 @@ class ValidateFilter implements ValidationRule
             foreach ($node as $i => $item) {
                 if (! is_array($item)) {
                     $errors[] = "The {$path}[{$i}] must be a condition object or a group (AND/OR).";
+
                     continue;
                 }
                 $errors = array_merge($errors, static::validateNode($item, "{$path}[{$i}]"));
@@ -120,7 +121,7 @@ class ValidateFilter implements ValidationRule
         }
 
         // AND / OR group(s)
-        $errors   = [];
+        $errors = [];
         $hasGroup = false;
 
         foreach (['AND', 'OR'] as $conjunction) {
@@ -133,12 +134,14 @@ class ValidateFilter implements ValidationRule
 
             if (! is_array($children)) {
                 $errors[] = "The {$path}.{$conjunction} must be an array of conditions or groups.";
+
                 continue;
             }
 
             foreach ($children as $i => $child) {
                 if (! is_array($child)) {
                     $errors[] = "The {$path}.{$conjunction}[{$i}] must be a condition object or a group.";
+
                     continue;
                 }
                 $errors = array_merge($errors, static::validateNode($child, "{$path}.{$conjunction}[{$i}]"));
@@ -147,7 +150,7 @@ class ValidateFilter implements ValidationRule
 
         if (! $hasGroup) {
             $errors[] = "The {$path} must be a condition object (with 'field' key), "
-                . "a group (with 'AND' or 'OR' key), or an indexed array of conditions/groups.";
+                ."a group (with 'AND' or 'OR' key), or an indexed array of conditions/groups.";
         }
 
         return $errors;
@@ -160,10 +163,10 @@ class ValidateFilter implements ValidationRule
         $errors = [];
 
         // Parse and validate `op`
-        $rawOp     = isset($condition['op']) ? strtolower(trim((string) $condition['op'])) : '=';
-        $parts     = explode('|', $rawOp, 2);
+        $rawOp = isset($condition['op']) ? strtolower(trim((string) $condition['op'])) : '=';
+        $parts = explode('|', $rawOp, 2);
         $primaryOp = $parts[0];
-        $subOp     = $parts[1] ?? null;
+        $subOp = $parts[1] ?? null;
 
         if (! in_array($primaryOp, self::KNOWN_OPS, true)) {
             $errors[] = "The {$path}.op '{$primaryOp}' is not a recognised operator.";
@@ -193,7 +196,7 @@ class ValidateFilter implements ValidationRule
 
         // Validate `value`
         $hasValue = array_key_exists('value', $condition);
-        $value    = $condition['value'] ?? null;
+        $value = $condition['value'] ?? null;
 
         $errors = array_merge($errors, static::validateValue($primaryOp, $hasValue, $value, $path));
 
@@ -207,7 +210,7 @@ class ValidateFilter implements ValidationRule
         if (in_array($primaryOp, ['has', 'field'], true)) {
             if (! in_array($subOp, self::COMPARISON_OPS, true)) {
                 $errors[] = "The {$path}.op sub-operator '{$subOp}' for '{$primaryOp}' must be one of: "
-                    . implode(', ', self::COMPARISON_OPS) . '.';
+                    .implode(', ', self::COMPARISON_OPS).'.';
             }
         } elseif (in_array($primaryOp, ['any', 'all', 'none'], true)) {
             $subPrimary = explode('|', $subOp, 2)[0];

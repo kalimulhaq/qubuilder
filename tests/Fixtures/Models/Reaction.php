@@ -23,7 +23,7 @@ class Reaction extends Model
     public function reactableMap(): array
     {
         return [
-            Post::class  => ['author'],
+            Post::class => ['author'],
             Video::class => ['channel'],
         ];
     }

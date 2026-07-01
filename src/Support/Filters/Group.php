@@ -53,9 +53,6 @@ class Group implements Arrayable
      * Apply the GROUP BY clause to the builder.
      *
      * No-ops when the column list is empty.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {

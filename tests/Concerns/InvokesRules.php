@@ -30,7 +30,7 @@ trait InvokesRules
     {
         $errors = $this->ruleErrors($rule, $value);
 
-        $this->assertSame([], $errors, 'Expected the rule to pass but got: ' . implode(' | ', $errors));
+        $this->assertSame([], $errors, 'Expected the rule to pass but got: '.implode(' | ', $errors));
     }
 
     protected function assertRuleFails(ValidationRule $rule, mixed $value): array

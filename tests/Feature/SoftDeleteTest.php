@@ -26,7 +26,7 @@ class SoftDeleteTest extends TestCase
         $this->assertCount(2, $builder->get());
     }
 
-    public function test_filter_on_deleted_at_applies_withTrashed(): void
+    public function test_filter_on_deleted_at_applies_with_trashed(): void
     {
         $this->seedUsers();
 
@@ -43,7 +43,7 @@ class SoftDeleteTest extends TestCase
         $this->assertSame('Gone', $results->first()->name);
     }
 
-    public function test_any_operator_on_deleted_at_triggers_withTrashed(): void
+    public function test_any_operator_on_deleted_at_triggers_with_trashed(): void
     {
         $this->seedUsers();
 

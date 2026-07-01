@@ -80,11 +80,11 @@ class ValidateIncludeTest extends TestCase
     public function test_filter_is_recursively_validated(): void
     {
         $this->assertRulePasses($this->rule(), [[
-            'name'   => 'orders',
+            'name' => 'orders',
             'filter' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'done']]],
         ]]);
         $this->assertRuleFails($this->rule(), [[
-            'name'   => 'orders',
+            'name' => 'orders',
             'filter' => ['AND' => [['field' => 'status', 'op' => 'bogus', 'value' => 'done']]],
         ]]);
     }
@@ -98,11 +98,11 @@ class ValidateIncludeTest extends TestCase
     public function test_nested_includes_are_recursively_validated(): void
     {
         $this->assertRulePasses($this->rule(), [[
-            'name'    => 'orders',
+            'name' => 'orders',
             'include' => [['name' => 'items', 'select' => ['id', 'qty']]],
         ]]);
         $this->assertRuleFails($this->rule(), [[
-            'name'    => 'orders',
+            'name' => 'orders',
             'include' => [['aggregate' => 'count']], // missing name
         ]]);
     }
@@ -110,14 +110,14 @@ class ValidateIncludeTest extends TestCase
     public function test_select_must_be_subset_of_group(): void
     {
         $this->assertRulePasses($this->rule(), [[
-            'name'   => 'orders',
+            'name' => 'orders',
             'select' => ['status'],
-            'group'  => ['status', 'type'],
+            'group' => ['status', 'type'],
         ]]);
         $errors = $this->assertRuleFails($this->rule(), [[
-            'name'   => 'orders',
+            'name' => 'orders',
             'select' => ['status', 'total'],
-            'group'  => ['status'],
+            'group' => ['status'],
         ]]);
         $this->assertStringContainsString('not in the group clause', $errors[0]);
     }

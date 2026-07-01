@@ -29,9 +29,6 @@ class Sorts
 
     /**
      * Apply all sort clauses to the builder.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {

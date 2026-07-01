@@ -1,0 +1,445 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Http\\Requests\\GetCollectionRequest\:\:decodedInput\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Http/Requests/GetCollectionRequest.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Http\\Requests\\GetCollectionRequest\:\:filters\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 5
+			path: src/Http/Requests/GetCollectionRequest.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Http\\Requests\\GetCollectionRequest\:\:withValidator\(\) has parameter \$validator with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: src/Http/Requests/GetCollectionRequest.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Http\\Requests\\GetCollectionRequest\:\:\$filters \(array\{select\: array, filter\: array, include\: array, sort\: array, group\: array, page\: int, limit\: int\}\) does not accept default value of type array\{\}\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: src/Http/Requests/GetCollectionRequest.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Http\\Requests\\GetCollectionRequest\:\:\$filters type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 5
+			path: src/Http/Requests/GetCollectionRequest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\:\:withTrashed\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Qubuilder\:\:buildGroup\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Qubuilder\:\:filters\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Qubuilder\:\:make\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Qubuilder\:\:makeFromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Qubuilder\:\:query\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Qubuilder\:\:\$builder with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Qubuilder\:\:\$filters type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: src/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:decode\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateCondition\(\) has parameter \$condition with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateCondition\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateNode\(\) has parameter \$node with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateSubOp\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateValue\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Unsafe call to private method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateCondition\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Unsafe call to private method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateSubOp\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Unsafe call to private method Kalimulhaq\\Qubuilder\\Rules\\ValidateFilter\:\:validateValue\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: src/Rules/ValidateFilter.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateInclude\:\:decode\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateInclude.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateInclude\:\:validateItem\(\) has parameter \$item with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateInclude.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateInclude\:\:validateItem\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateInclude.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateInclude\:\:validateItems\(\) has parameter \$items with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateInclude.php
+
+		-
+			message: '#^Unsafe call to private method Kalimulhaq\\Qubuilder\\Rules\\ValidateInclude\:\:validateItem\(\) through static\:\:\.$#'
+			identifier: staticClassAccess.privateMethod
+			count: 1
+			path: src/Rules/ValidateInclude.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateSort\:\:decode\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateSort.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateSort\:\:validateEntries\(\) has parameter \$sort with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateSort.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateSort\:\:validateEntries\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateSort.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateStringArray\:\:decode\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateStringArray.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateStringArray\:\:validateItems\(\) has parameter \$items with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateStringArray.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Rules\\ValidateStringArray\:\:validateItems\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Rules/ValidateStringArray.php
+
+		-
+			message: '#^Class Kalimulhaq\\Qubuilder\\Support\\Facades\\Qubuilder has PHPDoc tag @method for method filters\(\) parameter \#1 \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Facades/Qubuilder.php
+
+		-
+			message: '#^Class Kalimulhaq\\Qubuilder\\Support\\Facades\\Qubuilder has PHPDoc tag @method for method make\(\) parameter \#1 \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Facades/Qubuilder.php
+
+		-
+			message: '#^Class Kalimulhaq\\Qubuilder\\Support\\Facades\\Qubuilder has PHPDoc tag @method for method makeFromArray\(\) parameter \#1 \$array with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Facades/Qubuilder.php
+
+		-
+			message: '#^PHPDoc tag @method for method Kalimulhaq\\Qubuilder\\Support\\Facades\\Qubuilder\:\:query\(\) return type contains generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Facades/Qubuilder.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Group\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Group.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Group\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Group.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Includes\:\:__construct\(\) has parameter \$includes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Filters/Includes.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Includes\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Includes.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Includes\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Includes.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Support\\Filters\\Includes\:\:\$includes type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Filters/Includes.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Select\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Select.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Select\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Select.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\SingleSort\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/SingleSort.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\SingleSort\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/SingleSort.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Sorts\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Sorts.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Sorts\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Sorts.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Where\:\:__construct\(\) has parameter \$where with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Filters/Where.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Where\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Where.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\Where\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/Where.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Support\\Filters\\Where\:\:\$where type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Filters/Where.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:__construct\(\) has parameter \$condition with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:applyAutoMorphQuery\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:applyAutoMorphQuery\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:build\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:build\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:isMorphToRelation\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:whereDoesntHave\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:whereDoesntHave\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:whereHas\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:whereHas\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:whereMultiColumn\(\) has parameter \$builder with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:whereMultiColumn\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Property Kalimulhaq\\Qubuilder\\Support\\Filters\\WhereClause\:\:\$field type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Filters/WhereClause.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:include\(\) has parameter \$source with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Helper.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:include\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Helper.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:input\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 5
+			path: src/Support/Helper.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:inputAsArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Helper.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:select\(\) has parameter \$source with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Helper.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:select\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Helper.php
+
+		-
+			message: '#^Method Kalimulhaq\\Qubuilder\\Support\\Helper\:\:sort\(\) has parameter \$source with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Support/Helper.php

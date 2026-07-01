@@ -37,9 +37,6 @@ class Includes
 
     /**
      * Apply all includes to the builder.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {

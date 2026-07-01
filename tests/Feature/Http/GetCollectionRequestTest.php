@@ -9,13 +9,13 @@ class GetCollectionRequestTest extends TestCase
     public function test_valid_request_passes_and_normalises_filters(): void
     {
         $response = $this->postJson('/test/collection', [
-            'select'  => ['id', 'name'],
-            'filter'  => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'active']]],
+            'select' => ['id', 'name'],
+            'filter' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'active']]],
             'include' => [['name' => 'orders']],
-            'sort'    => ['name' => 'asc'],
-            'group'   => ['id', 'name'],
-            'page'    => 2,
-            'limit'   => 10,
+            'sort' => ['name' => 'asc'],
+            'group' => ['id', 'name'],
+            'page' => 2,
+            'limit' => 10,
         ]);
 
         $response->assertOk();
@@ -27,7 +27,7 @@ class GetCollectionRequestTest extends TestCase
 
     public function test_accepts_json_string_parameters(): void
     {
-        $response = $this->getJson('/test/collection?filter=' . urlencode('{"field":"status","op":"=","value":"active"}') . '&limit=5');
+        $response = $this->getJson('/test/collection?filter='.urlencode('{"field":"status","op":"=","value":"active"}').'&limit=5');
 
         $response->assertOk();
         $response->assertJsonPath('limit', 5);
@@ -85,7 +85,7 @@ class GetCollectionRequestTest extends TestCase
     {
         $this->postJson('/test/collection', [
             'select' => ['id', 'name'],
-            'group'  => ['id'],
+            'group' => ['id'],
         ])->assertStatus(422)->assertJsonValidationErrors('select');
     }
 

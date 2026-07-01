@@ -33,9 +33,6 @@ class Select implements Arrayable
 
     /**
      * Get a column by index.
-     *
-     * @param  string  $field
-     * @return string|null
      */
     public function __get(string $field): ?string
     {
@@ -62,9 +59,6 @@ class Select implements Arrayable
 
     /**
      * Apply the column selection to the builder.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {

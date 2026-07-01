@@ -61,6 +61,7 @@ class ValidateSort implements ValidationRule
         foreach ($sort as $column => $direction) {
             if (! is_string($column) || $column === '') {
                 $errors[] = "The {$path} sort key must be a non-empty string column name.";
+
                 continue;
             }
 

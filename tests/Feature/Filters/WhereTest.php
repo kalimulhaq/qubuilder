@@ -91,8 +91,8 @@ class WhereTest extends TestCase
     public function test_like_patterns(): void
     {
         $cases = [
-            '_like'  => '%john',
-            'like_'  => 'john%',
+            '_like' => '%john',
+            'like_' => 'john%',
             '_like_' => '%john%',
         ];
 
@@ -108,11 +108,11 @@ class WhereTest extends TestCase
     public function test_date_operators_emit_strftime(): void
     {
         $map = [
-            'date'  => '%Y-%m-%d',
-            'year'  => '%Y',
+            'date' => '%Y-%m-%d',
+            'year' => '%Y',
             'month' => '%m',
-            'day'   => '%d',
-            'time'  => '%H:%M:%S',
+            'day' => '%d',
+            'time' => '%H:%M:%S',
         ];
 
         foreach ($map as $op => $token) {
@@ -169,10 +169,26 @@ class WhereTest extends TestCase
         $this->assertStringContainsString('not (', $sql);
     }
 
+    public function test_none_operator_filters_real_rows(): void
+    {
+        // `none` is polyfilled as NOT(whereAny) so it works on every Laravel 11.x
+        // (whereNone() only exists from ~11.15). This proves the runtime behaviour.
+        User::create(['first_name' => 'John', 'last_name' => 'Doe']);
+        User::create(['first_name' => 'Jane', 'last_name' => 'Smith']);
+        User::create(['first_name' => 'Bob', 'last_name' => 'John']);
+
+        $names = Qubuilder::make([
+            'filter' => [['field' => ['first_name', 'last_name'], 'op' => 'none|=', 'value' => 'John']],
+        ], User::class)->query()->pluck('first_name')->all();
+
+        // Only Jane matches: neither of her columns equals 'John'.
+        $this->assertSame(['Jane'], $names);
+    }
+
     public function test_any_with_like_style_subop_maps_to_like(): void
     {
-        $filter   = [['field' => ['first_name', 'last_name'], 'op' => 'any|_like_', 'value' => 'john']];
-        $sql      = $this->sql($filter);
+        $filter = [['field' => ['first_name', 'last_name'], 'op' => 'any|_like_', 'value' => 'john']];
+        $sql = $this->sql($filter);
         $bindings = $this->bindings($filter);
 
         $this->assertStringContainsString('("first_name" like ? or "last_name" like ?)', $sql);
@@ -182,7 +198,7 @@ class WhereTest extends TestCase
     public function test_all_with_starts_with_like_subop(): void
     {
         $filter = [['field' => ['first_name', 'last_name'], 'op' => 'all|like_', 'value' => 'jo']];
-        $sql    = $this->sql($filter);
+        $sql = $this->sql($filter);
 
         $this->assertStringContainsString('("first_name" like ? and "last_name" like ?)', $sql);
         $this->assertContains('jo%', $this->bindings($filter));
@@ -212,11 +228,11 @@ class WhereTest extends TestCase
         $this->assertStringContainsString('>= 3', $sql);
     }
 
-    public function test_has_with_subfilter_uses_whereHas(): void
+    public function test_has_with_subfilter_uses_where_has(): void
     {
         $sql = strtolower($this->sql([[
             'field' => 'orders',
-            'op'    => 'has',
+            'op' => 'has',
             'value' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
         ]]));
         $this->assertStringContainsString('exists', $sql);
@@ -233,7 +249,7 @@ class WhereTest extends TestCase
     {
         $sql = strtolower($this->sql([[
             'field' => 'invoices',
-            'op'    => 'doesnthave',
+            'op' => 'doesnthave',
             'value' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'cancelled']]],
         ]]));
         $this->assertStringContainsString('not exists', $sql);
@@ -333,7 +349,7 @@ class WhereTest extends TestCase
         $names = Qubuilder::make([
             'filter' => [[
                 'field' => 'orders',
-                'op'    => 'has',
+                'op' => 'has',
                 'value' => ['AND' => [['field' => 'status', 'op' => '=', 'value' => 'completed']]],
             ]],
         ], User::class)->query()->pluck('name')->all();

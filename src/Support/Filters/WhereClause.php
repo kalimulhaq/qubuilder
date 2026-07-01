@@ -62,7 +62,7 @@ class WhereClause
     private $conjunction;
 
     /**
-     * @param  array        $condition    Associative array with `field`, `op`, and optionally `value`.
+     * @param  array  $condition  Associative array with `field`, `op`, and optionally `value`.
      * @param  string|null  $conjunction  'AND' or 'OR' (default: 'AND').
      */
     public function __construct(array $condition, ?string $conjunction = 'AND')
@@ -83,39 +83,36 @@ class WhereClause
 
     /**
      * Apply this condition to the builder using the resolved operator and conjunction.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {
         $valuesArr = Arr::wrap($this->value);
 
         return match ($this->op) {
-            'any'              => $this->whereMultiColumn($builder, 'Any'),
-            'all'              => $this->whereMultiColumn($builder, 'All'),
-            'none'             => $this->whereMultiColumn($builder, 'None'),
-            'in'               => $builder->{$this->where('In')}($this->field, $valuesArr),
-            'not_in'           => $builder->{$this->where('NotIn')}($this->field, $valuesArr),
-            'between'          => $builder->{$this->where('Between')}($this->field, $valuesArr),
-            'not_between'      => $builder->{$this->where('NotBetween')}($this->field, $valuesArr),
-            'null'             => $builder->{$this->where('Null')}($this->field),
-            'not_null'         => $builder->{$this->where('NotNull')}($this->field),
-            'date'             => $builder->{$this->where('Date')}($this->field, $this->value),
-            'year'             => $builder->{$this->where('Year')}($this->field, $this->value),
-            'month'            => $builder->{$this->where('Month')}($this->field, $this->value),
-            'day'              => $builder->{$this->where('Day')}($this->field, $this->value),
-            'time'             => $builder->{$this->where('Time')}($this->field, $this->value),
-            'has'              => $this->whereHas($builder),
-            'doesnthave'       => $this->whereDoesntHave($builder),
-            'json_contains'    => $builder->{$this->where('JsonContains')}($this->field, $this->value),
+            'any' => $this->whereMultiColumn($builder, 'Any'),
+            'all' => $this->whereMultiColumn($builder, 'All'),
+            'none' => $this->whereMultiColumn($builder, 'None'),
+            'in' => $builder->{$this->where('In')}($this->field, $valuesArr),
+            'not_in' => $builder->{$this->where('NotIn')}($this->field, $valuesArr),
+            'between' => $builder->{$this->where('Between')}($this->field, $valuesArr),
+            'not_between' => $builder->{$this->where('NotBetween')}($this->field, $valuesArr),
+            'null' => $builder->{$this->where('Null')}($this->field),
+            'not_null' => $builder->{$this->where('NotNull')}($this->field),
+            'date' => $builder->{$this->where('Date')}($this->field, $this->value),
+            'year' => $builder->{$this->where('Year')}($this->field, $this->value),
+            'month' => $builder->{$this->where('Month')}($this->field, $this->value),
+            'day' => $builder->{$this->where('Day')}($this->field, $this->value),
+            'time' => $builder->{$this->where('Time')}($this->field, $this->value),
+            'has' => $this->whereHas($builder),
+            'doesnthave' => $this->whereDoesntHave($builder),
+            'json_contains' => $builder->{$this->where('JsonContains')}($this->field, $this->value),
             'json_not_contains' => $builder->{$this->where('JsonDoesntContain')}($this->field, $this->value),
-            '_like'            => $builder->{$this->where()}($this->field, 'like', '%'.$this->value),
-            'like_'            => $builder->{$this->where()}($this->field, 'like', $this->value.'%'),
-            '_like_'           => $builder->{$this->where()}($this->field, 'like', '%'.$this->value.'%'),
-            'raw'              => $builder->{$this->whereRaw()}($this->field, $this->value),
-            'field'            => $builder->{$this->whereColumn()}($this->field, $this->subOp, $this->value),
-            default            => $builder->{$this->where()}($this->field, $this->op, $this->value),
+            '_like' => $builder->{$this->where()}($this->field, 'like', '%'.$this->value),
+            'like_' => $builder->{$this->where()}($this->field, 'like', $this->value.'%'),
+            '_like_' => $builder->{$this->where()}($this->field, 'like', '%'.$this->value.'%'),
+            'raw' => $builder->{$this->whereRaw()}($this->field, $this->value),
+            'field' => $builder->{$this->whereColumn()}($this->field, $this->subOp, $this->value),
+            default => $builder->{$this->where()}($this->field, $this->op, $this->value),
         };
     }
 
@@ -191,15 +188,15 @@ class WhereClause
 
         $method = match (true) {
             $doesntHave && $or => 'orWhereDoesntHaveMorph',
-            $doesntHave        => 'whereDoesntHaveMorph',
-            $or                => 'orWhereHasMorph',
-            default            => 'whereHasMorph',
+            $doesntHave => 'whereDoesntHaveMorph',
+            $or => 'orWhereHasMorph',
+            default => 'whereHasMorph',
         };
 
-        $value           = $this->value;
+        $value = $this->value;
         $neededRelations = $this->extractHasRelations($value);
-        $neededFields    = $this->extractDirectFields($value);
-        $resolvedTypes   = $this->filterMorphTypes($neededRelations);
+        $neededFields = $this->extractDirectFields($value);
+        $resolvedTypes = $this->filterMorphTypes($neededRelations);
 
         // Morph map is configured: pre-filter by relations then by model field metadata.
         // No DB queries; excluded types generate no sub-query at all.
@@ -423,13 +420,25 @@ class WhereClause
      * LIKE-style sub-operators (`_like`, `like_`, `_like_`) are translated to a SQL
      * `like` with the value wrapped accordingly, mirroring the single-column behaviour.
      *
+     * `none` is expressed as `NOT (whereAny)` rather than calling `whereNone()` directly,
+     * because `whereNone()` was only added mid-Laravel-11 (~11.15) while `whereAny()` and
+     * `whereNot()` exist since 11.0 — keeping the operator working across the whole
+     * supported range.
+     *
      * @param  string  $type  `Any`, `All`, or `None`.
      */
     private function whereMultiColumn(Builder $builder, string $type): Builder
     {
         [$operator, $value] = $this->resolveSubOperator();
+        $fields = Arr::wrap($this->field);
 
-        return $builder->{$this->where($type)}(Arr::wrap($this->field), $operator, $value);
+        if ($type === 'None') {
+            return $builder->{$this->where('Not')}(
+                fn (Builder $sub) => $sub->whereAny($fields, $operator, $value)
+            );
+        }
+
+        return $builder->{$this->where($type)}($fields, $operator, $value);
     }
 
     /**
@@ -442,10 +451,10 @@ class WhereClause
     private function resolveSubOperator(): array
     {
         return match ($this->subOp) {
-            '_like'  => ['like', '%'.$this->value],
-            'like_'  => ['like', $this->value.'%'],
+            '_like' => ['like', '%'.$this->value],
+            'like_' => ['like', $this->value.'%'],
             '_like_' => ['like', '%'.$this->value.'%'],
-            default  => [$this->subOp, $this->value],
+            default => [$this->subOp, $this->value],
         };
     }
 

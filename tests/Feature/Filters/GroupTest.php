@@ -13,7 +13,7 @@ class GroupTest extends TestCase
     {
         $sql = Qubuilder::make([
             'select' => ['status', 'role'],
-            'group'  => ['status', 'role'],
+            'group' => ['status', 'role'],
         ], User::class)->query()->toSql();
 
         $this->assertStringContainsString('group by "status", "role"', $sql);

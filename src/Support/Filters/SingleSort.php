@@ -27,7 +27,7 @@ class SingleSort
     protected $order;
 
     /**
-     * @param  string  $name   Column name or a `raw:` prefixed SQL expression.
+     * @param  string  $name  Column name or a `raw:` prefixed SQL expression.
      * @param  string  $order  Sort direction (`asc` or `desc`). Invalid values default to `asc`.
      */
     public function __construct(string $name, string $order)
@@ -41,9 +41,6 @@ class SingleSort
      *
      * If the name is prefixed with `raw:`, `orderByRaw()` is used with the
      * resolved direction appended to the expression.
-     *
-     * @param  Builder  $builder
-     * @return Builder
      */
     public function build(Builder $builder): Builder
     {

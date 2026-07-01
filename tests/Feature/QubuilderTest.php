@@ -39,7 +39,7 @@ class QubuilderTest extends TestCase
 
     public function test_make_from_request_parses_the_request(): void
     {
-        $this->get('/?filter=' . urlencode('{"field":"status","op":"=","value":"active"}') . '&limit=5');
+        $this->get('/?filter='.urlencode('{"field":"status","op":"=","value":"active"}').'&limit=5');
 
         $instance = Qubuilder::makeFromRequest(request(), User::class);
 
@@ -108,11 +108,11 @@ class QubuilderTest extends TestCase
     public function test_filter_objects_are_populated_after_query(): void
     {
         $instance = Qubuilder::make([
-            'select'  => ['id'],
-            'filter'  => [['field' => 'status', 'op' => '=', 'value' => 'active']],
+            'select' => ['id'],
+            'filter' => [['field' => 'status', 'op' => '=', 'value' => 'active']],
             'include' => [['name' => 'orders']],
-            'sort'    => ['name' => 'asc'],
-            'group'   => ['status'],
+            'sort' => ['name' => 'asc'],
+            'group' => ['status'],
         ], User::class);
 
         $instance->query();

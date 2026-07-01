@@ -3,7 +3,9 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
 [![Total Downloads](https://img.shields.io/packagist/dt/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
 [![GitHub Stars](https://img.shields.io/github/stars/kalimulhaq/qubuilder?style=flat-square)](https://github.com/kalimulhaq/qubuilder/stargazers)
-[![CI](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml)
+[![Tests](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/kalimulhaq/qubuilder/actions/workflows/main.yml)
+[![PHPStan](https://github.com/kalimulhaq/qubuilder/actions/workflows/phpstan.yml/badge.svg?branch=main)](https://github.com/kalimulhaq/qubuilder/actions/workflows/phpstan.yml)
+[![Code Style](https://github.com/kalimulhaq/qubuilder/actions/workflows/pint.yml/badge.svg?branch=main)](https://github.com/kalimulhaq/qubuilder/actions/workflows/pint.yml)
 [![PHP](https://img.shields.io/packagist/php-v/kalimulhaq/qubuilder.svg?style=flat-square&logo=php&logoColor=white)](https://packagist.org/packages/kalimulhaq/qubuilder)
 [![Laravel](https://img.shields.io/badge/Laravel-11%2B-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
 [![License](https://img.shields.io/github/license/kalimulhaq/qubuilder?style=flat-square)](LICENSE.md)
@@ -1126,6 +1128,14 @@ composer test
 
 ```bash
 composer test-coverage   # generates HTML coverage report in /coverage
+```
+
+## Code Quality
+
+```bash
+composer analyse   # PHPStan (Larastan) static analysis
+composer format    # apply Laravel Pint code style
+composer lint      # check code style without modifying files
 ```
 
 ---

@@ -27,7 +27,7 @@ class Comment extends Model
     public function commentableMap(): array
     {
         return [
-            'post'  => ['author'],
+            'post' => ['author'],
             'video' => ['channel'],
         ];
     }

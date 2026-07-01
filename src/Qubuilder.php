@@ -89,7 +89,7 @@ class Qubuilder
     /**
      * The query builder instance.
      *
-     * @var \Illuminate\Database\Eloquent\Builder
+     * @var Builder
      */
     protected $builder;
 
@@ -198,7 +198,7 @@ class Qubuilder
     {
         $this->filters = $filters;
 
-        $this->page  = Arr::get($this->filters, 'page', 1);
+        $this->page = Arr::get($this->filters, 'page', 1);
         $this->limit = Arr::get($this->filters, 'limit', config('qubuilder.limit.default', 15));
 
         return $this;
@@ -227,8 +227,6 @@ class Qubuilder
     /**
      * Build and return the query builder instance with the applied
      * select, where, include, and sort conditions.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function query(): Builder
     {

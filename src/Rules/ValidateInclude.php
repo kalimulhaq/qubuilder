@@ -69,7 +69,7 @@ class ValidateInclude implements ValidationRule
     /**
      * Validate an already-decoded array as a list of include item objects.
      *
-     * @return string[]  Error messages; empty when the list is valid.
+     * @return string[] Error messages; empty when the list is valid.
      */
     public static function validateItems(array $items, string $path): array
     {
@@ -84,6 +84,7 @@ class ValidateInclude implements ValidationRule
 
             if (! is_array($item)) {
                 $errors[] = "The {$itemPath} must be an object.";
+
                 continue;
             }
 
@@ -110,7 +111,7 @@ class ValidateInclude implements ValidationRule
         if ($aggregate !== null) {
             if (! in_array($aggregate, self::VALID_AGGREGATES, true)) {
                 $errors[] = "The {$path}.aggregate must be one of: "
-                    . implode(', ', self::VALID_AGGREGATES) . '.';
+                    .implode(', ', self::VALID_AGGREGATES).'.';
             } elseif (in_array($aggregate, self::FIELD_REQUIRED_AGGREGATES, true)) {
                 // field is required for avg / sum / min / max
                 if (! isset($item['field']) || ! is_string($item['field']) || $item['field'] === '') {
@@ -172,7 +173,7 @@ class ValidateInclude implements ValidationRule
             $notInGroup = array_diff($item['select'], $item['group']);
 
             if (! empty($notInGroup)) {
-                $errors[] = "The {$path}.select columns [" . implode(', ', $notInGroup) . '] are not in the group clause.';
+                $errors[] = "The {$path}.select columns [".implode(', ', $notInGroup).'] are not in the group clause.';
             }
         }
 

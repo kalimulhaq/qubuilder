@@ -14,11 +14,11 @@ class User extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'settings'     => 'array',
-        'verified_at'  => 'datetime',
+        'settings' => 'array',
+        'verified_at' => 'datetime',
         'published_at' => 'datetime',
-        'age'          => 'integer',
-        'score'        => 'integer',
+        'age' => 'integer',
+        'score' => 'integer',
     ];
 
     public function orders(): HasMany
