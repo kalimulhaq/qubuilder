@@ -979,7 +979,9 @@ Aggregate includes also accept a `filter` key to scope the aggregation:
 
 ### Polymorphic Relations (MorphTo)
 
-If the relation is a `MorphTo` and the model defines a `{relation}Map()` method, the package uses `morphWith()` to apply selective sub-includes per morph type.
+If the relation is a `MorphTo` and the model defines a **public** `{relation}Map()` method, the package uses `morphWith()` to apply selective sub-includes per morph type.
+
+The map keys are morph types — either the alias registered via `Relation::morphMap()` (e.g. `'post'`) or the model's fully-qualified class name (e.g. `Post::class`) when no morph map is configured. The values list the relations that may be eager-loaded for that type.
 
 ```php
 // On your model:
@@ -988,7 +990,8 @@ public function commentable(): MorphTo
     return $this->morphTo();
 }
 
-private function commentableMap(): array
+// Must be public — the package calls this method on your model instance.
+public function commentableMap(): array
 {
     return [
         'post'  => ['author', 'tags'],

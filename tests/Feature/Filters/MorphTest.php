@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Comment;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Post;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Reaction;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\User;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Video;
 use Kalimulhaq\Qubuilder\Tests\TestCase;
@@ -56,6 +57,65 @@ class MorphTest extends TestCase
         $this->assertInstanceOf(Video::class, $onVideo->commentable);
         $this->assertTrue($onVideo->commentable->relationLoaded('channel'));
         $this->assertSame('Channel', $onVideo->commentable->channel->name);
+    }
+
+    public function test_include_morph_with_fqcn_map_keys(): void
+    {
+        // No morphMap registered -> morph type is stored as the FQCN, and the map is
+        // keyed by FQCN (Post::class / Video::class). Mirrors the real-world usage.
+        $author  = User::create(['name' => 'Author']);
+        $channel = User::create(['name' => 'Channel']);
+
+        $post  = Post::create(['title' => 'P', 'author_id' => $author->id]);
+        $video = Video::create(['title' => 'V', 'channel_id' => $channel->id]);
+
+        $onPost = new Reaction;
+        $onPost->reactable()->associate($post)->save();
+
+        $onVideo = new Reaction;
+        $onVideo->reactable()->associate($video)->save();
+
+        $reactions = Qubuilder::make([
+            'include' => [[
+                'name'    => 'reactable',
+                'include' => [['name' => 'author'], ['name' => 'channel']],
+            ]],
+        ], Reaction::class)->query()->get();
+
+        $postReaction  = $reactions->first(fn ($r) => $r->reactable_type === Post::class);
+        $videoReaction = $reactions->first(fn ($r) => $r->reactable_type === Video::class);
+
+        $this->assertInstanceOf(Post::class, $postReaction->reactable);
+        $this->assertTrue($postReaction->reactable->relationLoaded('author'));
+        $this->assertSame('Author', $postReaction->reactable->author->name);
+
+        $this->assertInstanceOf(Video::class, $videoReaction->reactable);
+        $this->assertTrue($videoReaction->reactable->relationLoaded('channel'));
+        $this->assertSame('Channel', $videoReaction->reactable->channel->name);
+    }
+
+    public function test_include_morph_with_fqcn_keys_and_registered_morph_map(): void
+    {
+        // Mirrors engage/core: a morph map is enforced (type stored as an alias) while
+        // the model's {relation}Map() is keyed by FQCN. The FQCN key must still resolve.
+        $this->registerMorphMap();
+
+        $author = User::create(['name' => 'Author']);
+        $post   = Post::create(['title' => 'P', 'author_id' => $author->id]);
+
+        $reaction = new Reaction;
+        $reaction->reactable()->associate($post)->save();
+
+        $loaded = Qubuilder::make([
+            'include' => [[
+                'name'    => 'reactable',
+                'include' => [['name' => 'author']],
+            ]],
+        ], Reaction::class)->query()->first();
+
+        $this->assertInstanceOf(Post::class, $loaded->reactable);
+        $this->assertTrue($loaded->reactable->relationLoaded('author'));
+        $this->assertSame('Author', $loaded->reactable->author->name);
     }
 
     // ── WHERE has on a MorphTo relation ───────────────────────────────────────

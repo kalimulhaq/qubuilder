@@ -124,5 +124,10 @@ abstract class TestCase extends Orchestra
             $table->morphs('commentable');
             $table->timestamps();
         });
+
+        Schema::create('reactions', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('reactable');
+        });
     }
 }

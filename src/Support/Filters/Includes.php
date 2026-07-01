@@ -4,6 +4,7 @@ namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Kalimulhaq\Qubuilder\Qubuilder;
 use Kalimulhaq\Qubuilder\Support\Helper;
@@ -48,25 +49,29 @@ class Includes
 
             if (! empty($name)) {
                 $commonFilters = Arr::only($include, ['select', 'filter', 'include', 'sort', 'group', 'page', 'limit']);
-                $aggregateFilters = Arr::only($include, ['filter', 'page', 'limit']);
+                $aggregateFilter = $include['filter'] ?? null;
                 $aggregate = $include['aggregate'] ?? null;
                 $field = $include['field'] ?? null;
 
+                // Scope the aggregate sub-query by its `filter` only — applying the full
+                // pipeline (select/sort/group) would clobber the aggregate's own SELECT.
+                $scopeAggregate = fn ($subBuilder) => (new Where($aggregateFilter))->build($subBuilder);
+
                 switch ($aggregate) {
                     case 'count':
-                        $builder->withCount([$name => fn ($subBuilder) => Qubuilder::make($aggregateFilters, $subBuilder)]);
+                        $builder->withCount([$name => $scopeAggregate]);
                         break;
                     case 'avg':
-                        $builder->withAvg([$name => fn ($subBuilder) => Qubuilder::make($aggregateFilters, $subBuilder)], $field);
+                        $builder->withAvg([$name => $scopeAggregate], $field);
                         break;
                     case 'sum':
-                        $builder->withSum([$name => fn ($subBuilder) => Qubuilder::make($aggregateFilters, $subBuilder)], $field);
+                        $builder->withSum([$name => $scopeAggregate], $field);
                         break;
                     case 'min':
-                        $builder->withMin([$name => fn ($subBuilder) => Qubuilder::make($aggregateFilters, $subBuilder)], $field);
+                        $builder->withMin([$name => $scopeAggregate], $field);
                         break;
                     case 'max':
-                        $builder->withMax([$name => fn ($subBuilder) => Qubuilder::make($aggregateFilters, $subBuilder)], $field);
+                        $builder->withMax([$name => $scopeAggregate], $field);
                         break;
                     default:
                         if (Helper::getReturnTypes(get_class($model), $name) === MorphTo::class && method_exists($model, $name.'Map')) {
@@ -75,10 +80,15 @@ class Includes
                                 $morphMaping = $model->{$name.'Map'}();
 
                                 foreach ($morphMaping as $morpto => $relations) {
+                                    // morphWith() resolves morphable eager-loads by class name,
+                                    // so map a morph alias (e.g. 'post') to its FQCN when one is
+                                    // registered; otherwise the key is assumed to be a class name.
+                                    $morphClass = Relation::getMorphedModel($morpto) ?? $morpto;
+
                                     foreach (Helper::include($commonFilters) as $inputInclude) {
                                         if (in_array($inputInclude['name'], $relations)) {
                                             Arr::set(
-                                                $morphWith, $morpto.'.'.$inputInclude['name'],
+                                                $morphWith, $morphClass.'.'.$inputInclude['name'],
                                                 fn ($subBuilder) => Qubuilder::make($inputInclude, $subBuilder)->query()
                                             );
                                         }

@@ -89,13 +89,12 @@ class WhereClause
      */
     public function build(Builder $builder): Builder
     {
-        $fieldsArr = Arr::wrap($this->field);
         $valuesArr = Arr::wrap($this->value);
 
         return match ($this->op) {
-            'any'              => $builder->{$this->where('Any')}($fieldsArr, $this->subOp, $this->value),
-            'all'              => $builder->{$this->where('All')}($fieldsArr, $this->subOp, $this->value),
-            'none'             => $builder->{$this->where('None')}($fieldsArr, $this->subOp, $this->value),
+            'any'              => $this->whereMultiColumn($builder, 'Any'),
+            'all'              => $this->whereMultiColumn($builder, 'All'),
+            'none'             => $this->whereMultiColumn($builder, 'None'),
             'in'               => $builder->{$this->where('In')}($this->field, $valuesArr),
             'not_in'           => $builder->{$this->where('NotIn')}($this->field, $valuesArr),
             'between'          => $builder->{$this->where('Between')}($this->field, $valuesArr),
@@ -416,6 +415,38 @@ class WhereClause
         }
 
         return array_unique($fields);
+    }
+
+    /**
+     * Apply a multi-column condition (`any`/`all`/`none`) using the resolved sub-operator.
+     *
+     * LIKE-style sub-operators (`_like`, `like_`, `_like_`) are translated to a SQL
+     * `like` with the value wrapped accordingly, mirroring the single-column behaviour.
+     *
+     * @param  string  $type  `Any`, `All`, or `None`.
+     */
+    private function whereMultiColumn(Builder $builder, string $type): Builder
+    {
+        [$operator, $value] = $this->resolveSubOperator();
+
+        return $builder->{$this->where($type)}(Arr::wrap($this->field), $operator, $value);
+    }
+
+    /**
+     * Resolve the piped sub-operator into a [SQL operator, value] pair.
+     *
+     * Translates the LIKE-pattern aliases; all other sub-operators pass through unchanged.
+     *
+     * @return array{0: string, 1: mixed}
+     */
+    private function resolveSubOperator(): array
+    {
+        return match ($this->subOp) {
+            '_like'  => ['like', '%'.$this->value],
+            'like_'  => ['like', $this->value.'%'],
+            '_like_' => ['like', '%'.$this->value.'%'],
+            default  => [$this->subOp, $this->value],
+        };
     }
 
     private function where(string $type = ''): string

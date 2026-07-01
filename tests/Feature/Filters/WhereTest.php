@@ -169,24 +169,38 @@ class WhereTest extends TestCase
         $this->assertStringContainsString('not (', $sql);
     }
 
-    /**
-     * KNOWN DISCREPANCY: the README documents `any|_like_` mapping to a SQL `LIKE`
-     * with `%...%` wrapping. In reality WhereClause passes the raw sub-operator
-     * (`_like_`) straight to whereAny; Laravel rejects it as an invalid operator and
-     * silently coerces the call to equality, binding the literal string `_like_` as
-     * the value instead of `%john%`. The intended LIKE search is lost entirely.
-     * This test pins the ACTUAL behaviour; update it if the source is fixed.
-     */
-    public function test_any_with_like_style_subop_is_coerced_to_equality(): void
+    public function test_any_with_like_style_subop_maps_to_like(): void
     {
         $filter   = [['field' => ['first_name', 'last_name'], 'op' => 'any|_like_', 'value' => 'john']];
-        $sql      = strtolower($this->sql($filter));
+        $sql      = $this->sql($filter);
         $bindings = $this->bindings($filter);
 
-        $this->assertStringNotContainsString('like', $sql);
-        $this->assertStringContainsString('"first_name" = ?', $sql);
-        // The pattern is lost: the operator token leaks in as the bound value.
-        $this->assertContains('_like_', $bindings);
+        $this->assertStringContainsString('("first_name" like ? or "last_name" like ?)', $sql);
+        $this->assertContains('%john%', $bindings);
+    }
+
+    public function test_all_with_starts_with_like_subop(): void
+    {
+        $filter = [['field' => ['first_name', 'last_name'], 'op' => 'all|like_', 'value' => 'jo']];
+        $sql    = $this->sql($filter);
+
+        $this->assertStringContainsString('("first_name" like ? and "last_name" like ?)', $sql);
+        $this->assertContains('jo%', $this->bindings($filter));
+    }
+
+    public function test_any_with_like_subop_filters_real_rows(): void
+    {
+        User::create(['first_name' => 'Johnny', 'last_name' => 'Doe']);
+        User::create(['first_name' => 'Jane', 'last_name' => 'Johnson']);
+        User::create(['first_name' => 'Bob', 'last_name' => 'Smith']);
+
+        $names = Qubuilder::make([
+            'filter' => [['field' => ['first_name', 'last_name'], 'op' => 'any|_like_', 'value' => 'john']],
+        ], User::class)->query()->pluck('first_name')->all();
+        sort($names);
+
+        // Matches Johnny (first_name) and Jane (last_name Johnson), not Bob.
+        $this->assertSame(['Jane', 'Johnny'], $names);
     }
 
     // ── Relationship existence ──────────────────────────────────────────────
