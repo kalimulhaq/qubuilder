@@ -3,6 +3,7 @@
 namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Applies one or more ORDER BY clauses to the builder.
@@ -29,6 +30,11 @@ class Sorts
 
     /**
      * Apply all sort clauses to the builder.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {

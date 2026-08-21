@@ -49,6 +49,9 @@ class ValidateSort implements ValidationRule
      * Validate an already-decoded array as an associative column => direction map.
      *
      * Returns an array of error message strings (empty when valid).
+     *
+     * @param  array<int|string, mixed>  $sort
+     * @return string[]
      */
     public static function validateEntries(array $sort, string $path): array
     {

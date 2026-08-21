@@ -4,6 +4,7 @@ namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Kalimulhaq\Qubuilder\Support\Helper;
 
@@ -64,6 +65,11 @@ class Select implements Arrayable
      * When `qubuilder.allow_select_all` is disabled, the "*" wildcard is stripped
      * and the selection falls back to the model's primary key only if no explicit
      * columns remain — preventing unrestricted "SELECT *" queries.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {

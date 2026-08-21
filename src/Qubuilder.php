@@ -20,13 +20,17 @@ use Kalimulhaq\Qubuilder\Support\Helper;
  * A query builder utility class that helps in constructing complex queries
  * by providing methods to handle selection, filtering, including related resources,
  * sorting, pagination, and more.
+ *
+ * @template TModel of Model
+ *
+ * @phpstan-consistent-constructor
  */
 class Qubuilder
 {
     /**
      * The raw filters provided for building the query.
      *
-     * @var array
+     * @var array<int|string, mixed>
      */
     protected $filters = [];
 
@@ -82,14 +86,14 @@ class Qubuilder
     /**
      * The model class for which the query is being built.
      *
-     * @var string
+     * @var class-string<TModel>|null
      */
     protected $model = Model::class;
 
     /**
      * The query builder instance.
      *
-     * @var Builder
+     * @var Builder<TModel>|null
      */
     protected $builder;
 
@@ -152,9 +156,11 @@ class Qubuilder
     /**
      * Create an instance of Qubuilder with the provided filters and model.
      *
-     * @param  array  $filters  The filters to apply.
-     * @param  mixed  $model  The model class or query builder instance.
-     * @return static
+     * @template TMakeModel of Model
+     *
+     * @param  array<int|string, mixed>  $filters  The filters to apply.
+     * @param  class-string<TMakeModel>|Builder<TMakeModel>|Relation<TMakeModel, Model, mixed>|null  $model  The model class or query builder instance.
+     * @return self<TMakeModel>
      */
     public static function make($filters = [], mixed $model = null)
     {
@@ -169,8 +175,11 @@ class Qubuilder
     /**
      * Create a Qubuilder instance from an array of filters.
      *
-     * @param  array  $array  The array of filters.
-     * @param  mixed  $model  The model class or query builder instance.
+     * @template TMakeModel of Model
+     *
+     * @param  array<int|string, mixed>  $array  The array of filters.
+     * @param  class-string<TMakeModel>|Builder<TMakeModel>|Relation<TMakeModel, Model, mixed>|null  $model  The model class or query builder instance.
+     * @return self<TMakeModel>
      */
     public static function makeFromArray(array $array, mixed $model = null): self
     {
@@ -180,8 +189,11 @@ class Qubuilder
     /**
      * Create a Qubuilder instance from a request's input.
      *
+     * @template TMakeModel of Model
+     *
      * @param  Request|null  $req  The HTTP request instance.
-     * @param  mixed  $model  The model class or query builder instance.
+     * @param  class-string<TMakeModel>|Builder<TMakeModel>|Relation<TMakeModel, Model, mixed>|null  $model  The model class or query builder instance.
+     * @return self<TMakeModel>
      */
     public static function makeFromRequest(?Request $req = null, mixed $model = null): self
     {
@@ -191,7 +203,7 @@ class Qubuilder
     /**
      * Set the filters for the query builder.
      *
-     * @param  array  $filters  The filters to apply.
+     * @param  array<int|string, mixed>  $filters  The filters to apply.
      * @return $this
      */
     public function filters(array $filters = []): self
@@ -207,17 +219,22 @@ class Qubuilder
     /**
      * Set the model for the query builder.
      *
-     * @param  mixed  $model  The model class or query builder instance.
-     * @return $this
+     * @template TSetModel of Model
+     *
+     * @param  class-string<TSetModel>|Builder<TSetModel>|Relation<TSetModel, Model, mixed>|null  $model  The model class or query builder instance.
+     * @return self<TSetModel>
      */
     public function model(mixed $model): self
     {
         if (is_string($model)) {
             $this->model = $model;
+            // @phpstan-ignore assign.propertyType (this method reassigns TModel for the current instance; PHPStan can't express that for a nested-generic property — see phpstan/phpstan#12592)
             $this->builder = $this->model::query();
         } elseif ($model instanceof Builder) {
+            // @phpstan-ignore assign.propertyType (this method reassigns TModel for the current instance; PHPStan can't express that for a nested-generic property — see phpstan/phpstan#12592)
             $this->builder = $model;
         } elseif ($model instanceof Relation) {
+            // @phpstan-ignore assign.propertyType (this method reassigns TModel for the current instance; PHPStan can't express that for a nested-generic property — see phpstan/phpstan#12592)
             $this->builder = $model->getQuery();
         }
 
@@ -227,6 +244,8 @@ class Qubuilder
     /**
      * Build and return the query builder instance with the applied
      * select, where, include, and sort conditions.
+     *
+     * @return Builder<TModel>
      */
     public function query(): Builder
     {
@@ -269,6 +288,7 @@ class Qubuilder
         $this->builder = $this->where->build($this->builder);
 
         if ($this->includeTrashed()) {
+            // @phpstan-ignore method.notFound (withTrashed() is a macro added at runtime by SoftDeletingScope for models using the SoftDeletes trait; PHPStan can't see macro registrations)
             $this->builder->withTrashed();
         }
     }
@@ -297,7 +317,7 @@ class Qubuilder
         $this->builder = $this->sort->build($this->builder);
     }
 
-    private function buildGroup()
+    private function buildGroup(): void
     {
         $groupArray = Arr::get($this->filters, 'group');
         $this->group = new Group($groupArray);

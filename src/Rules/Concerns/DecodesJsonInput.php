@@ -15,6 +15,8 @@ trait DecodesJsonInput
      *
      * Returns `null` when the value is neither a valid JSON string nor an array,
      * which the calling rule should treat as a validation failure.
+     *
+     * @return array<int|string, mixed>|null
      */
     protected function decode(mixed $value): ?array
     {

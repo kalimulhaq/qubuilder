@@ -70,6 +70,7 @@ class ValidateInclude implements ValidationRule
     /**
      * Validate an already-decoded array as a list of include item objects.
      *
+     * @param  array<int|string, mixed>  $items
      * @return string[] Error messages; empty when the list is valid.
      */
     public static function validateItems(array $items, string $path): array
@@ -89,7 +90,7 @@ class ValidateInclude implements ValidationRule
                 continue;
             }
 
-            $errors = array_merge($errors, static::validateItem($item, $itemPath));
+            $errors = array_merge($errors, self::validateItem($item, $itemPath));
         }
 
         return $errors;
@@ -97,6 +98,10 @@ class ValidateInclude implements ValidationRule
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * @param  array<int|string, mixed>  $item
+     * @return string[]
+     */
     private static function validateItem(array $item, string $path): array
     {
         $errors = [];

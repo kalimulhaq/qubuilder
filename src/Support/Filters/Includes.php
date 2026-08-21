@@ -3,6 +3,7 @@
 namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
@@ -23,12 +24,12 @@ class Includes
     /**
      * The list of include definitions.
      *
-     * @var array
+     * @var array<int, array<string, mixed>>
      */
     private $includes = [];
 
     /**
-     * @param  array|null  $includes  Array of include definition arrays.
+     * @param  array<int, array<string, mixed>>|null  $includes  Array of include definition arrays.
      */
     public function __construct(?array $includes = [])
     {
@@ -37,6 +38,11 @@ class Includes
 
     /**
      * Apply all includes to the builder.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {
@@ -52,7 +58,8 @@ class Includes
 
                 // Scope the aggregate sub-query by its `filter` only — applying the full
                 // pipeline (select/sort/group) would clobber the aggregate's own SELECT.
-                $scopeAggregate = fn ($subBuilder) => (new Where($aggregateFilter))->build($subBuilder);
+                /** @param  Builder<Model>  $subBuilder */
+                $scopeAggregate = fn (Builder $subBuilder) => (new Where($aggregateFilter))->build($subBuilder);
 
                 switch ($aggregate) {
                     case 'count':
@@ -86,7 +93,8 @@ class Includes
                                         if (in_array($inputInclude['name'], $relations)) {
                                             Arr::set(
                                                 $morphWith, $morphClass.'.'.$inputInclude['name'],
-                                                fn ($subBuilder) => Qubuilder::make($inputInclude, $subBuilder)->query()
+                                                /** @param  Relation<Model, Model, mixed>  $subBuilder */
+                                                fn (Relation $subBuilder) => Qubuilder::make($inputInclude, $subBuilder)->query()
                                             );
                                         }
                                     }
@@ -96,7 +104,8 @@ class Includes
                             }]);
                         } else {
                             if (! empty($commonFilters)) {
-                                $builder->with([$name => fn ($subBuilder) => Qubuilder::make($commonFilters, $subBuilder)->query()]);
+                                /** @param  Relation<Model, Model, mixed>  $subBuilder */
+                                $builder->with([$name => fn (Relation $subBuilder) => Qubuilder::make($commonFilters, $subBuilder)->query()]);
                             } else {
                                 $builder->with([$name]);
                             }

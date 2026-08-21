@@ -4,6 +4,7 @@ namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 
 /**
@@ -53,6 +54,11 @@ class Group implements Arrayable
      * Apply the GROUP BY clause to the builder.
      *
      * No-ops when the column list is empty.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {

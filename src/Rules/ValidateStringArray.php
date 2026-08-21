@@ -53,6 +53,9 @@ class ValidateStringArray implements ValidationRule
      * Validate an already-decoded array as an indexed list of non-empty strings.
      *
      * Returns an array of error message strings (empty when valid).
+     *
+     * @param  array<int|string, mixed>  $items
+     * @return string[]
      */
     public static function validateItems(array $items, string $path): array
     {

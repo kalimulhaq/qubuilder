@@ -3,6 +3,7 @@
 namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Applies a single ORDER BY clause to the builder.
@@ -41,6 +42,11 @@ class SingleSort
      *
      * If the name is prefixed with `raw:`, `orderByRaw()` is used with the
      * resolved direction appended to the expression.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {

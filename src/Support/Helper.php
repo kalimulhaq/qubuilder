@@ -38,6 +38,7 @@ class Helper
      * @param  bool|null  $associative  Decode JSON objects as associative arrays (default: true).
      * @param  int  $depth  Maximum JSON decoding depth (default: 512).
      * @param  int  $flags  JSON decoding flags (default: 0).
+     * @return array<int|string, mixed>
      */
     public static function inputAsArray(mixed $input, ?bool $associative = true, int $depth = 512, int $flags = 0): array
     {
@@ -61,7 +62,7 @@ class Helper
      * Falls back to `request()` when `$req` is null. The `limit` value is
      * clamped between 1 and `maxLimit()`.
      *
-     * @return array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
+     * @return array{select: array<int|string, mixed>, filter: array<int|string, mixed>, include: array<int|string, mixed>, sort: array<int|string, mixed>, group: array<int|string, mixed>, page: int, limit: int}
      */
     public static function input(?Request $req = null): array
     {
@@ -134,7 +135,8 @@ class Helper
     /**
      * Extract the `select` array from a filters source array.
      *
-     * @param  array  $source  A filters array (e.g. from `Helper::input()`).
+     * @param  array<int|string, mixed>  $source  A filters array (e.g. from `Helper::input()`).
+     * @return array<int|string, mixed>
      */
     public static function select(array $source): array
     {
@@ -144,8 +146,9 @@ class Helper
     /**
      * Extract the `include` array from a filters source array.
      *
-     * @param  array  $source  A filters array (e.g. from `Helper::input()`).
+     * @param  array<int|string, mixed>  $source  A filters array (e.g. from `Helper::input()`).
      * @param  bool  $nameOnly  When true, returns only the `name` values as a flat array.
+     * @return array<int|string, mixed>
      */
     public static function include(array $source, bool $nameOnly = false): array
     {
@@ -159,7 +162,7 @@ class Helper
     /**
      * Extract the `sort` array from a filters source array.
      *
-     * @param  array  $source  A filters array (e.g. from `Helper::input()`).
+     * @param  array<int|string, mixed>  $source  A filters array (e.g. from `Helper::input()`).
      * @return array<string, string>
      */
     public static function sort(array $source): array

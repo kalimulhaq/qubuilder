@@ -96,13 +96,14 @@ class ValidateFilter implements ValidationRule
     /**
      * Recursively validate a filter node (condition, group, or list).
      *
+     * @param  array<int|string, mixed>  $node
      * @return string[] Error messages; empty when the node is valid.
      */
     public static function validateNode(array $node, string $path): array
     {
         // Bare condition: has a `field` key at the top level
         if (array_key_exists('field', $node)) {
-            return static::validateCondition($node, $path);
+            return self::validateCondition($node, $path);
         }
 
         // Flat indexed list of conditions/groups
@@ -158,6 +159,10 @@ class ValidateFilter implements ValidationRule
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * @param  array<int|string, mixed>  $condition
+     * @return string[]
+     */
     private static function validateCondition(array $condition, string $path): array
     {
         $errors = [];
@@ -175,7 +180,7 @@ class ValidateFilter implements ValidationRule
         }
 
         if ($subOp !== null) {
-            $errors = array_merge($errors, static::validateSubOp($primaryOp, $subOp, $path));
+            $errors = array_merge($errors, self::validateSubOp($primaryOp, $subOp, $path));
         }
 
         // Validate `field`
@@ -198,11 +203,12 @@ class ValidateFilter implements ValidationRule
         $hasValue = array_key_exists('value', $condition);
         $value = $condition['value'] ?? null;
 
-        $errors = array_merge($errors, static::validateValue($primaryOp, $hasValue, $value, $path));
+        $errors = array_merge($errors, self::validateValue($primaryOp, $hasValue, $value, $path));
 
         return $errors;
     }
 
+    /** @return string[] */
     private static function validateSubOp(string $primaryOp, string $subOp, string $path): array
     {
         $errors = [];
@@ -224,6 +230,7 @@ class ValidateFilter implements ValidationRule
         return $errors;
     }
 
+    /** @return string[] */
     private static function validateValue(string $primaryOp, bool $hasValue, mixed $value, string $path): array
     {
         $errors = [];

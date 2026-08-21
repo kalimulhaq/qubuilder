@@ -3,6 +3,7 @@
 namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
@@ -17,7 +18,7 @@ class Where
     /**
      * The raw filter array for this group.
      *
-     * @var array
+     * @var array<int|string, mixed>
      */
     private $where;
 
@@ -29,7 +30,7 @@ class Where
     private $conjunction;
 
     /**
-     * @param  array|null  $where  Filter conditions / nested groups.
+     * @param  array<int|string, mixed>|null  $where  Filter conditions / nested groups.
      * @param  string|null  $conjunction  'AND' or 'OR' (default: 'AND').
      */
     public function __construct(?array $where = [], ?string $conjunction = 'AND')
@@ -40,6 +41,11 @@ class Where
 
     /**
      * Apply all conditions in this group to the given builder.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {
@@ -53,6 +59,7 @@ class Where
             $this->where = [$this->where];
         }
 
+        /** @param  Builder<TFilterModel>  $subBuilder */
         $group = function (Builder $subBuilder) {
             foreach ($this->where as $key => $condition) {
 

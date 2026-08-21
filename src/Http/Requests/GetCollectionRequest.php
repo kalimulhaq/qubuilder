@@ -4,6 +4,7 @@ namespace Kalimulhaq\Qubuilder\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 use Kalimulhaq\Qubuilder\Rules\ValidateFilter;
 use Kalimulhaq\Qubuilder\Rules\ValidateInclude;
 use Kalimulhaq\Qubuilder\Rules\ValidateSort;
@@ -25,7 +26,7 @@ class GetCollectionRequest extends FormRequest
     /**
      * The parsed filters array, populated after successful validation.
      *
-     * @var array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
+     * @var array<string, mixed>
      */
     protected array $filters = [];
 
@@ -143,9 +144,9 @@ class GetCollectionRequest extends FormRequest
     /**
      * Cross-field validation: every selected column must appear in the group clause.
      */
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function ($validator) {
+        $validator->after(function (Validator $validator) {
             $selectParam = Helper::param('select');
             $groupParam = Helper::param('group');
 
@@ -184,13 +185,14 @@ class GetCollectionRequest extends FormRequest
      *
      * Returns a normalised array ready to pass directly to `Qubuilder::make()`.
      *
-     * @return array{select: array, filter: array, include: array, sort: array, group: array, page: int, limit: int}
+     * @return array<string, mixed>
      */
     public function filters(): array
     {
         return $this->filters;
     }
 
+    /** @return array<int|string, mixed> */
     private function decodedInput(string $param): array
     {
         $value = $this->input($param);

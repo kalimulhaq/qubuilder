@@ -3,6 +3,7 @@
 namespace Kalimulhaq\Qubuilder\Support\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
@@ -29,7 +30,7 @@ class WhereClause
     /**
      * The column name (or array of columns for `any`/`all`/`none`).
      *
-     * @var string|array
+     * @var string|array<int, string>
      */
     private $field;
 
@@ -62,7 +63,7 @@ class WhereClause
     private $conjunction;
 
     /**
-     * @param  array  $condition  Associative array with `field`, `op`, and optionally `value`.
+     * @param  array<string, mixed>  $condition  Associative array with `field`, `op`, and optionally `value`.
      * @param  string|null  $conjunction  'AND' or 'OR' (default: 'AND').
      */
     public function __construct(array $condition, ?string $conjunction = 'AND')
@@ -83,6 +84,11 @@ class WhereClause
 
     /**
      * Apply this condition to the builder using the resolved operator and conjunction.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     public function build(Builder $builder): Builder
     {
@@ -116,6 +122,12 @@ class WhereClause
         };
     }
 
+    /**
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
+     */
     private function whereHas(Builder $builder): Builder
     {
         if (is_iterable($this->value) && $this->isMorphToRelation($builder)) {
@@ -135,6 +147,12 @@ class WhereClause
         return $builder->{$method}($this->field, $this->subOp, (int) $this->value);
     }
 
+    /**
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
+     */
     private function whereDoesntHave(Builder $builder): Builder
     {
         if (is_iterable($this->value) && $this->isMorphToRelation($builder)) {
@@ -156,6 +174,10 @@ class WhereClause
 
     /**
      * Check whether `$this->field` resolves to a MorphTo relation on the builder's model.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
      */
     private function isMorphToRelation(Builder $builder): bool
     {
@@ -181,6 +203,11 @@ class WhereClause
      * **When no morph map is registered**: falls back to `whereHasMorph('*', ...)`,
      * which runs one `SELECT DISTINCT _type` query. Types that lack a required
      * relation are excluded via `WHERE 0=1` inside the callback.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
      */
     private function applyAutoMorphQuery(Builder $builder, bool $doesntHave): Builder
     {
@@ -425,7 +452,11 @@ class WhereClause
      * `whereNot()` exist since 11.0 — keeping the operator working across the whole
      * supported range.
      *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
      * @param  string  $type  `Any`, `All`, or `None`.
+     * @return Builder<TFilterModel>
      */
     private function whereMultiColumn(Builder $builder, string $type): Builder
     {
