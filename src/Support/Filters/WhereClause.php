@@ -22,8 +22,9 @@ use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
  * `doesnthave` filter targets a MorphTo relation, the type list is pre-filtered in
  * PHP (zero DB queries) using model metadata (`$fillable`, `$casts`, `$attributes`,
  * timestamps, PK) so `whereHasMorph` only generates subqueries for types that can
- * actually match. When no morph map is registered, `whereHasMorph('*', ...)` is used
- * and incompatible types are excluded inside the callback via `WHERE 0=1`.
+ * actually match. The types come from the model's `{relation}Map()` keys when it has
+ * one, else from the registered morph map. When neither exists, `whereHasMorph('*', ...)`
+ * is used and incompatible types are excluded inside the callback via `WHERE 0=1`.
  */
 class WhereClause
 {
@@ -197,10 +198,12 @@ class WhereClause
     /**
      * Handle `has`/`doesnthave` on a MorphTo relation.
      *
-     * **When a morph map is registered** (recommended): resolves valid types in PHP
-     * using `method_exists()` — no extra DB query, no UNION for excluded types.
+     * **When the model has a `{relation}Map()` or a morph map is registered**
+     * (recommended): resolves valid types in PHP using `method_exists()` — no extra DB
+     * query, no UNION for excluded types. The relation map wins, so only the types the
+     * relation can point to are searched.
      *
-     * **When no morph map is registered**: falls back to `whereHasMorph('*', ...)`,
+     * **When neither exists**: falls back to `whereHasMorph('*', ...)`,
      * which runs one `SELECT DISTINCT _type` query. Types that lack a required
      * relation are excluded via `WHERE 0=1` inside the callback.
      *
@@ -223,10 +226,10 @@ class WhereClause
         $value = $this->value;
         $neededRelations = $this->extractHasRelations($value);
         $neededFields = $this->extractDirectFields($value);
-        $resolvedTypes = $this->filterMorphTypes($neededRelations);
+        $resolvedTypes = $this->filterMorphTypes($builder, $neededRelations);
 
-        // Morph map is configured: pre-filter by relations then by model field metadata.
-        // No DB queries; excluded types generate no sub-query at all.
+        // The candidate types are known (relation map or morph map): pre-filter by relations
+        // then by model field metadata. No DB queries; excluded types generate no sub-query.
         if ($resolvedTypes !== null) {
             $resolvedTypes = $this->filterMorphTypesByFields($resolvedTypes, $neededFields);
 
@@ -338,27 +341,30 @@ class WhereClause
     /**
      * Resolve morph types eligible to be queried for the given sub-relations.
      *
-     * When a morph map is registered, filters it in PHP using `method_exists()`
-     * — no DB query, no model instantiation.
+     * Starts from the types the relation can point to (see `morphTypeCandidates()`) and
+     * filters them in PHP using `method_exists()` — no DB query, no model instantiation.
      *
-     * Returns `null` when no morph map is configured (caller should use `'*'`).
-     * Returns `[]` when morph map is set but no type supports all required relations.
+     * Returns `null` when there are no candidate types (caller should use `'*'`).
+     * Returns `[]` when no candidate supports all required relations.
      * Returns `string[]` (FQCNs) when at least one type is valid.
      *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
      * @param  array<int, string>  $neededRelations
      * @return array<int, string>|null
      */
-    private function filterMorphTypes(array $neededRelations): ?array
+    private function filterMorphTypes(Builder $builder, array $neededRelations): ?array
     {
-        $morphMap = Relation::morphMap();
+        $candidates = $this->morphTypeCandidates($builder);
 
-        if (empty($morphMap)) {
+        if (empty($candidates)) {
             return null;
         }
 
         $valid = [];
 
-        foreach ($morphMap as $class) {
+        foreach ($candidates as $class) {
             foreach ($neededRelations as $relation) {
                 if (! method_exists($class, $relation)) {
                     continue 2;
@@ -369,6 +375,46 @@ class WhereClause
         }
 
         return $valid;
+    }
+
+    /**
+     * Resolve the classes the MorphTo relation can point to.
+     *
+     * Uses the keys of the model's public `{relation}Map()` method when it has one (the
+     * same method `Includes` reads), so a type the relation never points to is not searched
+     * just because it sits in the global morph map. A key is a morph alias or a class name;
+     * a key that does not resolve to a model class is ignored, as no stored row can use it.
+     *
+     * Falls back to every class of the global morph map when the model has no such method
+     * or none of its keys resolves. The result is empty when there is no morph map either.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return array<int, string>
+     */
+    private function morphTypeCandidates(Builder $builder): array
+    {
+        $model = $builder->getModel();
+        $mapMethod = $this->field.'Map';
+
+        if (method_exists($model, $mapMethod)) {
+            $classes = [];
+
+            foreach (array_keys($model->{$mapMethod}()) as $type) {
+                $class = Relation::getMorphedModel($type) ?? $type;
+
+                if (is_string($class) && is_subclass_of($class, Model::class)) {
+                    $classes[] = $class;
+                }
+            }
+
+            if ($classes !== []) {
+                return array_values(array_unique($classes));
+            }
+        }
+
+        return array_values(Relation::morphMap());
     }
 
     /**

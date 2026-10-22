@@ -2,10 +2,14 @@
 
 namespace Kalimulhaq\Qubuilder\Tests\Feature\Filters;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Attachment;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Comment;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Podcast;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Post;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Profile;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Reaction;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\User;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Video;
@@ -24,6 +28,14 @@ class MorphTest extends TestCase
     private function registerMorphMap(): void
     {
         Relation::morphMap(['post' => Post::class, 'video' => Video::class], false);
+    }
+
+    /**
+     * Podcast is a morph type of the app but not of the relation maps of Comment and Reaction.
+     */
+    private function registerMorphMapWithPodcast(): void
+    {
+        Relation::morphMap(['post' => Post::class, 'video' => Video::class, 'podcast' => Podcast::class], false);
     }
 
     // ── Include: morphWith via {relation}Map() ────────────────────────────────
@@ -159,5 +171,121 @@ class MorphTest extends TestCase
         ], Comment::class)->query()->get();
 
         $this->assertSame(['c1'], $comments->pluck('body')->all());
+    }
+
+    // ── WHERE has on a MorphTo relation with a {relation}Map() ────────────────
+
+    public function test_where_has_morph_builds_no_subquery_for_types_outside_the_relation_map(): void
+    {
+        // Podcast has an `author` relation too, but its author is a Profile (no `name`
+        // column) and Podcast is not in Reaction::reactableMap(). Searching it fails with
+        // "Unknown column 'name'" on MySQL. SQLite reads the unknown column as a string
+        // literal and stays silent, so the generated SQL is checked as well.
+        $this->registerMorphMapWithPodcast();
+
+        $ann = User::create(['name' => 'Ann']);
+        $bob = User::create(['name' => 'Bob']);
+
+        $annsReaction = $this->reactTo(Post::create(['title' => 'P1', 'author_id' => $ann->id]));
+        $this->reactTo(Post::create(['title' => 'P2', 'author_id' => $bob->id]));
+        $this->reactTo(Podcast::create(['title' => 'Pod', 'author_id' => Profile::create(['bio' => 'Ann'])->id]));
+
+        $query = Qubuilder::make([
+            'filter' => [[
+                'field' => 'reactable',
+                'op' => 'has',
+                'value' => ['AND' => [[
+                    'field' => 'author',
+                    'op' => 'has',
+                    'value' => ['AND' => [['field' => 'name', 'op' => '=', 'value' => 'Ann']]],
+                ]]],
+            ]],
+        ], Reaction::class)->query();
+
+        $this->assertStringNotContainsString('podcasts', $query->toSql());
+        $this->assertSame([$annsReaction->id], $query->get()->pluck('id')->all());
+    }
+
+    public function test_where_has_morph_only_searches_the_types_in_the_relation_map(): void
+    {
+        $this->registerMorphMapWithPodcast();
+
+        $post = Post::create(['title' => 'Same']);
+        $podcast = Podcast::create(['title' => 'Same']);
+
+        $postReaction = $this->reactTo($post);
+        $this->reactTo($podcast);
+
+        $reactions = Qubuilder::make([
+            'filter' => [[
+                'field' => 'reactable',
+                'op' => 'has',
+                'value' => ['AND' => [['field' => 'title', 'op' => '=', 'value' => 'Same']]],
+            ]],
+        ], Reaction::class)->query()->get();
+
+        $this->assertSame([$postReaction->id], $reactions->pluck('id')->all());
+    }
+
+    public function test_where_has_morph_resolves_alias_keys_of_the_relation_map(): void
+    {
+        // Comment::commentableMap() is keyed by morph aliases ('post', 'video'); the
+        // registered morph map turns them into classes. Podcast is not in that map.
+        $this->registerMorphMapWithPodcast();
+
+        $author = User::create(['name' => 'Ann', 'bio' => 'shared']);
+        $profile = Profile::create(['bio' => 'shared']);
+
+        $post = Post::create(['title' => 'P', 'author_id' => $author->id]);
+        $podcast = Podcast::create(['title' => 'Pod', 'author_id' => $profile->id]);
+
+        $post->comments()->create(['body' => 'on post']);
+        Comment::create(['body' => 'on podcast', 'commentable_type' => 'podcast', 'commentable_id' => $podcast->id]);
+
+        $comments = Qubuilder::make([
+            'filter' => [[
+                'field' => 'commentable',
+                'op' => 'has',
+                'value' => ['AND' => [[
+                    'field' => 'author',
+                    'op' => 'has',
+                    'value' => ['AND' => [['field' => 'bio', 'op' => '=', 'value' => 'shared']]],
+                ]]],
+            ]],
+        ], Comment::class)->query()->get();
+
+        $this->assertSame(['on post'], $comments->pluck('body')->all());
+    }
+
+    public function test_where_has_morph_without_a_relation_map_searches_every_type_of_the_morph_map(): void
+    {
+        $this->registerMorphMapWithPodcast();
+
+        $post = Post::create(['title' => 'Same']);
+        $podcast = Podcast::create(['title' => 'Same']);
+        $video = Video::create(['title' => 'Other']);
+
+        foreach ([$post, $podcast, $video] as $attachable) {
+            $attachment = new Attachment;
+            $attachment->attachable()->associate($attachable)->save();
+        }
+
+        $attachments = Qubuilder::make([
+            'filter' => [[
+                'field' => 'attachable',
+                'op' => 'has',
+                'value' => ['AND' => [['field' => 'title', 'op' => '=', 'value' => 'Same']]],
+            ]],
+        ], Attachment::class)->query()->get();
+
+        $this->assertEqualsCanonicalizing(['post', 'podcast'], $attachments->pluck('attachable_type')->all());
+    }
+
+    private function reactTo(Model $reactable): Reaction
+    {
+        $reaction = new Reaction;
+        $reaction->reactable()->associate($reactable)->save();
+
+        return $reaction;
     }
 }

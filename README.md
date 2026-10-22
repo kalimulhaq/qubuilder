@@ -1015,6 +1015,8 @@ public function commentableMap(): array
 }
 ```
 
+The same map limits which types a `has` / `doesnthave` filter on the `MorphTo` searches. Only the map keys are used: `commentable has {...}` builds a sub-query for `post` and `video` only, even when other models sit in `Relation::morphMap()`. Without a map, every class of the morph map is considered, as before. This matters when two morph types share a relation name but point at different tables, so a nested filter fits one and not the other.
+
 ---
 
 ## HTTP Request Integration

@@ -117,6 +117,13 @@ abstract class TestCase extends Orchestra
             $table->timestamps();
         });
 
+        Schema::create('podcasts', function (Blueprint $table) {
+            $table->id();
+            $table->string('title')->nullable();
+            $table->foreignId('author_id')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->string('body')->nullable();
@@ -128,6 +135,11 @@ abstract class TestCase extends Orchestra
         Schema::create('reactions', function (Blueprint $table) {
             $table->id();
             $table->morphs('reactable');
+        });
+
+        Schema::create('attachments', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('attachable');
         });
     }
 }
