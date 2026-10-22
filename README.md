@@ -12,7 +12,7 @@
 
 **Qubuilder** turns a structured filter payload into a fully-chained Eloquent query — no manual `if` chains, no hand-rolled request parsers.
 
-Send filters from an HTTP request (GET or POST) or pass them as a plain PHP array and get back a ready-to-paginate `Builder` in a single call. Every parameter is optional; use only what each endpoint needs.
+Send filters from an HTTP request (GET, POST or QUERY) or pass them as a plain PHP array and get back a ready-to-paginate `Builder` in a single call. Every parameter is optional; use only what each endpoint needs.
 
 **Capabilities at a glance:**
 
@@ -134,13 +134,14 @@ $users = Qubuilder::make($filters, $builder)->query()->paginate();
 
 ### From an HTTP Request
 
-Both GET (query string) and POST (request body) are supported — the package reads from `$request->input()`, which transparently handles both methods.
+GET (query string), POST (request body) and QUERY (request body) are supported. The package reads from `$request->input()`, which handles all three. For a list endpoint that needs a body, prefer QUERY over POST: see [The QUERY Method](#the-query-method).
 
 ```php
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
 
-// GET  /api/users?filter={"AND":[{"field":"status","op":"=","value":"active"}]}&sort={"created_at":"desc"}&limit=20
-// POST /api/users  { "filter": {"AND":[{"field":"status","op":"=","value":"active"}]}, "sort": {"created_at":"desc"}, "limit": 20 }
+// GET   /api/users?filter={"AND":[{"field":"status","op":"=","value":"active"}]}&sort={"created_at":"desc"}&limit=20
+// POST  /api/users  { "filter": {"AND":[{"field":"status","op":"=","value":"active"}]}, "sort": {"created_at":"desc"}, "limit": 20 }
+// QUERY /api/users  { "filter": {"AND":[{"field":"status","op":"=","value":"active"}]}, "sort": {"created_at":"desc"}, "limit": 20 }  (Content-Type: application/json)
 
 $users = Qubuilder::makeFromRequest(request(), User::class)
     ->query()
@@ -322,9 +323,9 @@ $filters = [
 $users = Qubuilder::make($filters, User::class)->query()->paginate();
 ```
 
-### JSON (for HTTP requests — GET or POST)
+### JSON (for HTTP requests: GET, POST or QUERY)
 
-The same payload encoded as JSON query-string parameters (GET) or request body (POST):
+The same payload encoded as JSON query-string parameters (GET) or request body (POST or QUERY):
 
 ```json
 {
@@ -1132,6 +1133,43 @@ public function index(ListUsersRequest $request)
         ->paginate();
 }
 ```
+
+---
+
+### The QUERY Method
+
+[RFC 10008](https://www.rfc-editor.org/rfc/rfc10008.html) (June 2026) defines `QUERY`: a request method that is safe and idempotent like GET, cacheable (per the RFC, the body is part of the cache key), and carries the query in the request body like POST. That makes it the better fit for the list requests Qubuilder parses: a large `filter` does not have to fit in the URL, and a client can retry the request without side effects.
+
+Qubuilder needs no setup for it. It reads parameters with `$request->input()`, so `GetCollectionRequest`, `GetResourceRequest` and `Qubuilder::makeFromRequest()` work the same as with POST.
+
+```http
+QUERY /api/users
+Content-Type: application/json
+Accept: application/json
+
+{
+    "filter": {"AND": [{"field": "status", "op": "=", "value": "active"}]},
+    "sort": {"created_at": "desc"},
+    "limit": 20
+}
+```
+
+Register the route with `Route::match`:
+
+```php
+use Illuminate\Support\Facades\Route;
+
+Route::match(['GET', 'POST', 'QUERY'], '/api/users', [UserController::class, 'index']);
+```
+
+Things to know:
+
+- **Register the route yourself.** `Route::get()`, `Route::post()` and `Route::any()` do not include `QUERY`.
+- **Send a JSON body** (`Content-Type: application/json`). It works on every supported Laravel version.
+- **A form-encoded body needs Symfony 7.4 or newer.** A body sent as `application/x-www-form-urlencoded` is only parsed by Symfony 7.4 and newer: Laravel 13, or Laravel 11 and 12 with an up-to-date `composer.lock`. Multipart bodies and a missing `Content-Type` are not supported.
+- **Query-string parameters also work**, the same as with GET.
+- **Support is still limited.** Clients, proxies, load balancers and web servers must pass the method through. PHP's built-in server, which `php artisan serve` uses, answers `501 Not Implemented` (checked on PHP 8.3), so try it behind a real web server.
+- **CSRF:** Laravel treats `QUERY` as a state-changing method, so a route behind the CSRF middleware (web routes) needs a token. API routes are not affected.
 
 ---
 
