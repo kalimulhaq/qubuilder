@@ -51,4 +51,28 @@ class GetResourceRequestTest extends TestCase
             'select' => ['id', 123],
         ])->assertStatus(422)->assertJsonValidationErrors('select');
     }
+
+    // ── QUERY method (JSON body, see GetCollectionRequestTest) ───────────────
+
+    public function test_query_method_returns_only_select_and_include(): void
+    {
+        $response = $this->json('QUERY', '/test/resource', [
+            'select' => ['id', 'name'],
+            'include' => [['name' => 'profile']],
+            'filter' => [['field' => 'status', 'op' => 'bogus', 'value' => 'x']], // not validated for a resource
+        ]);
+
+        $response->assertOk();
+        $response->assertExactJson([
+            'select' => ['id', 'name'],
+            'include' => [['name' => 'profile']],
+        ]);
+    }
+
+    public function test_query_method_validates_include(): void
+    {
+        $this->json('QUERY', '/test/resource', [
+            'include' => [['aggregate' => 'count']], // missing name
+        ])->assertStatus(422)->assertJsonValidationErrors('include');
+    }
 }

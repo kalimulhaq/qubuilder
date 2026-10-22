@@ -3,6 +3,7 @@
 namespace Kalimulhaq\Qubuilder\Tests\Feature;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Kalimulhaq\Qubuilder\Qubuilder;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder as QubuilderFacade;
@@ -45,6 +46,22 @@ class QubuilderTest extends TestCase
 
         $this->assertSame(5, $instance->limit());
         $this->assertStringContainsString('"status" = ?', $instance->query()->toSql());
+    }
+
+    public function test_make_from_request_reads_a_query_method_json_body(): void
+    {
+        User::create(['name' => 'Active', 'status' => 'active']);
+        User::create(['name' => 'Off', 'status' => 'off']);
+
+        $request = Request::create('/', 'QUERY', [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+            'filter' => [['field' => 'status', 'op' => '=', 'value' => 'active']],
+            'limit' => 5,
+        ]));
+
+        $instance = Qubuilder::makeFromRequest($request, User::class);
+
+        $this->assertSame(5, $instance->limit());
+        $this->assertSame(['Active'], $instance->query()->pluck('name')->all());
     }
 
     public function test_model_accepts_a_class_string(): void

@@ -36,11 +36,11 @@ abstract class TestCase extends Orchestra
      */
     protected function defineRoutes($router): void
     {
-        $router->match(['get', 'post'], '/test/collection', function (GetCollectionRequest $request) {
+        $router->match(['get', 'post', 'query'], '/test/collection', function (GetCollectionRequest $request) {
             return response()->json($request->filters());
         });
 
-        $router->match(['get', 'post'], '/test/resource', function (GetResourceRequest $request) {
+        $router->match(['get', 'post', 'query'], '/test/resource', function (GetResourceRequest $request) {
             return response()->json($request->filters());
         });
     }
