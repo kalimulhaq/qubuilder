@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+# Runs Laravel Pint on staged PHP files only, then re-stages any files Pint corrected.
+# core.hooksPath points here after `composer install` (see composer.json "post-autoload-dump").
+
+staged=()
+while IFS= read -r f; do staged+=("$f"); done < <(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.php$' || true)
+
+if [ ${#staged[@]} -eq 0 ]; then
+    exit 0
+fi
+
+if [ ! -x ./vendor/bin/pint ]; then
+    echo "→ Pint is not installed (run composer install). Skipping the format check."
+    exit 0
+fi
+
+echo "→ Pint: formatting ${#staged[@]} staged PHP file(s)..."
+
+./vendor/bin/pint "${staged[@]}" || exit 1
+
+for file in "${staged[@]}"; do
+    git add "$file"
+done
+
+exit 0

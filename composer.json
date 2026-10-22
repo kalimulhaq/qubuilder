@@ -50,6 +50,9 @@
         "analyse": "vendor/bin/phpstan analyse",
         "format": "vendor/bin/pint",
         "lint": "vendor/bin/pint --test",
+        "post-autoload-dump": [
+            "@php -r \"is_dir('.git') && system('git config core.hooksPath .githooks');\""
+        ],
         "test": "vendor/bin/phpunit",
         "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
     },
