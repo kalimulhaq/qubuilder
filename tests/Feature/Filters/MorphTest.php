@@ -71,6 +71,37 @@ class MorphTest extends TestCase
         $this->assertSame('Channel', $onVideo->commentable->channel->name);
     }
 
+    public function test_include_morph_sub_include_applies_its_own_select_and_filter(): void
+    {
+        $this->registerMorphMap();
+
+        $keep = User::create(['name' => 'Keep', 'email' => 'keep@example.com']);
+        $drop = User::create(['name' => 'Drop', 'email' => 'drop@example.com']);
+
+        Post::create(['title' => 'P1', 'author_id' => $keep->id])->comments()->create(['body' => 'keep']);
+        Post::create(['title' => 'P2', 'author_id' => $drop->id])->comments()->create(['body' => 'drop']);
+
+        $comments = Qubuilder::make([
+            'include' => [[
+                'name' => 'commentable',
+                'include' => [[
+                    'name' => 'author',
+                    'select' => ['id', 'name'],
+                    'filter' => [['field' => 'name', 'op' => '=', 'value' => 'Keep']],
+                ]],
+            ]],
+        ], Comment::class)->query()->get();
+
+        $kept = $comments->firstWhere('body', 'keep')->commentable->author;
+        $this->assertSame('Keep', $kept->name);
+        $this->assertArrayNotHasKey('email', $kept->getAttributes());
+
+        // The sub-include's own filter excludes the second author: loaded, but empty.
+        $dropped = $comments->firstWhere('body', 'drop')->commentable;
+        $this->assertTrue($dropped->relationLoaded('author'));
+        $this->assertNull($dropped->author);
+    }
+
     public function test_include_morph_with_fqcn_map_keys(): void
     {
         // No morphMap registered -> morph type is stored as the FQCN, and the map is

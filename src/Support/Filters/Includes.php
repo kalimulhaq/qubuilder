@@ -94,18 +94,20 @@ class Includes
                                             Arr::set(
                                                 $morphWith, $morphClass.'.'.$inputInclude['name'],
                                                 /** @param  Relation<Model, Model, mixed>  $subBuilder */
-                                                fn (Relation $subBuilder) => Qubuilder::make($inputInclude, $subBuilder)->query()
+                                                fn (Relation $subBuilder) => Qubuilder::make($inputInclude, $subBuilder->getQuery())->query()
                                             );
                                         }
                                     }
                                 }
 
-                                $morphBuilder->morphWith($morphWith);
+                                if ($morphBuilder instanceof MorphTo) {
+                                    $morphBuilder->morphWith($morphWith);
+                                }
                             }]);
                         } else {
                             if (! empty($commonFilters)) {
                                 /** @param  Relation<Model, Model, mixed>  $subBuilder */
-                                $builder->with([$name => fn (Relation $subBuilder) => Qubuilder::make($commonFilters, $subBuilder)->query()]);
+                                $builder->with([$name => fn (Relation $subBuilder) => Qubuilder::make($commonFilters, $subBuilder->getQuery())->query()]);
                             } else {
                                 $builder->with([$name]);
                             }
