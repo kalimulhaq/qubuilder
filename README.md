@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/kalimulhaq/qubuilder/main/.github/assets/banner.png" alt="Qubuilder: a JSON filter request becomes a chained Eloquent query" width="100%" />
+</p>
+
 # Qubuilder
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/kalimulhaq/qubuilder.svg?style=flat-square)](https://packagist.org/packages/kalimulhaq/qubuilder)
@@ -10,22 +14,29 @@
 [![Laravel](https://img.shields.io/badge/Laravel-11%2B-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
 [![License](https://img.shields.io/github/license/kalimulhaq/qubuilder?style=flat-square)](LICENSE.md)
 
-**Qubuilder** turns a structured filter payload into a fully-chained Eloquent query — no manual `if` chains, no hand-rolled request parsers.
+Qubuilder turns a structured filter payload into a fully chained Eloquent query: no `if` chains in every endpoint, no hand-written request parsers. Send the filters in an HTTP request (GET, POST or QUERY) or pass a plain PHP array, and get back a `Builder` ready to paginate.
 
-Send filters from an HTTP request (GET, POST or QUERY) or pass them as a plain PHP array and get back a ready-to-paginate `Builder` in a single call. Every parameter is optional; use only what each endpoint needs.
+```php
+$users = Qubuilder::makeFromRequest(request(), User::class)->query()->paginate();
+```
 
-**Capabilities at a glance:**
+### What it does
 
 | Key | What it does |
-|-----|-------------|
-| `select` | Choose which columns to return |
-| `filter` | Nested AND/OR conditions with 20+ operators |
-| `include` | Eager-load relations with sub-filters, sorts, and aggregates |
-| `sort` | Multi-column ordering, including raw expressions |
-| `group` | GROUP BY clauses |
-| `page` / `limit` | Pagination with a configurable hard cap |
+|-----|--------------|
+| `select` | Returns only the columns the client asks for |
+| `filter` | Nested AND/OR groups with more than 20 operators: comparisons, lists, null checks, text search, dates and times, JSON columns, column-to-column comparison, relationship existence, and matching across several columns |
+| `include` | Eager-loads relations with their own filters, sorting and nested includes, or computes a count, sum, average, minimum or maximum instead |
+| `sort` | Orders by several columns, including raw expressions |
+| `group` | Groups the results |
+| `page` / `limit` | Paginates, with a hard cap you set so no request can ask for more rows than you allow |
 
-**Requires:** PHP 8.3+ · Laravel 11+
+### What it supports
+
+- **PHP** 8.3 or newer, and **Laravel** 11, 12 and 13.
+- **Input** from a query string (GET), a JSON body (POST, or the HTTP QUERY method), or a plain PHP array.
+- **Relations**, including nested and polymorphic (MorphTo) relations.
+- **Limits you control**: the page-size cap, and switches to require explicit columns or to turn includes off.
 
 ---
 

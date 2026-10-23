@@ -7,6 +7,9 @@ All notable changes to `qubuilder` will be documented in this file.
 ### Added
 - Documented and tested support for the HTTP `QUERY` method (RFC 10008). `GetCollectionRequest`, `GetResourceRequest` and `Qubuilder::makeFromRequest()` already read the JSON body and query string of a `QUERY` request. The README now recommends `QUERY` for list endpoints, and explains route registration and that a form-encoded body needs Symfony 7.4 or newer.
 
+### Changed
+- README: a banner at the top, and an opening that says what each key does and what is supported (PHP, Laravel, input, relations, limits).
+
 ## [1.1.0] — 2026-04-07
 
 ### Added
