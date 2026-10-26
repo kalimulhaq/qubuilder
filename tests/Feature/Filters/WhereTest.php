@@ -256,6 +256,33 @@ class WhereTest extends TestCase
         $this->assertStringContainsString('"status" = ?', $sql);
     }
 
+    public function test_has_dotted_path_builds_nested_exists(): void
+    {
+        // `orders.items` is unrolled as `orders has { items has {...} }`: one EXISTS per segment,
+        // the sub-filter on the last one.
+        $sql = strtolower($this->sql([[
+            'field' => 'orders.items',
+            'op' => 'has',
+            'value' => ['AND' => [['field' => 'qty', 'op' => '>', 'value' => 5]]],
+        ]]));
+
+        $orders = strpos($sql, 'exists (select * from "qubuilder_orders"');
+        $items = strpos($sql, 'exists (select * from "qubuilder_items"');
+
+        $this->assertNotFalse($orders);
+        $this->assertNotFalse($items);
+        $this->assertGreaterThan($orders, $items);
+        $this->assertStringContainsString('"qty" > ?', $sql);
+    }
+
+    public function test_doesnthave_dotted_path_negates_the_outer_segment_only(): void
+    {
+        $sql = strtolower($this->sql([['field' => 'orders.items', 'op' => 'doesnthave']]));
+
+        $this->assertStringContainsString('not exists (select * from "qubuilder_orders"', $sql);
+        $this->assertStringContainsString('and ((exists (select * from "qubuilder_items"', $sql);
+    }
+
     // ── Structure: AND / OR / nesting ────────────────────────────────────────
 
     public function test_flat_list_is_implicit_and(): void
@@ -355,5 +382,45 @@ class WhereTest extends TestCase
         ], User::class)->query()->pluck('name')->all();
 
         $this->assertSame(['Buyer'], $names);
+    }
+
+    public function test_execution_has_dotted_path(): void
+    {
+        $bulk = User::create(['name' => 'Bulk']);
+        $bulk->orders()->create([])->items()->create(['qty' => 10]);
+
+        $single = User::create(['name' => 'Single']);
+        $single->orders()->create([])->items()->create(['qty' => 1]);
+
+        User::create(['name' => 'Browser']);
+
+        $names = Qubuilder::make([
+            'filter' => [[
+                'field' => 'orders.items',
+                'op' => 'has',
+                'value' => ['AND' => [['field' => 'qty', 'op' => '>', 'value' => 5]]],
+            ]],
+        ], User::class)->query()->pluck('name')->all();
+
+        $this->assertSame(['Bulk'], $names);
+    }
+
+    public function test_execution_doesnthave_dotted_path(): void
+    {
+        // Same meaning as Laravel's doesntHave('orders.items'): no order that has an item.
+        // A user whose only order is empty qualifies, as does one with no order at all.
+        $filled = User::create(['name' => 'Filled']);
+        $filled->orders()->create([])->items()->create(['qty' => 1]);
+
+        $empty = User::create(['name' => 'Empty']);
+        $empty->orders()->create([]);
+
+        User::create(['name' => 'None']);
+
+        $names = Qubuilder::make([
+            'filter' => [['field' => 'orders.items', 'op' => 'doesnthave']],
+        ], User::class)->query()->pluck('name')->all();
+
+        $this->assertSame(['Empty', 'None'], $names);
     }
 }
