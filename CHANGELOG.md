@@ -11,6 +11,10 @@ All notable changes to `qubuilder` will be documented in this file.
 ### Changed
 - README: a banner at the top, and an opening that says what each key does and what is supported (PHP, Laravel, input, relations, limits).
 
+### Fixed
+- Inside an include on a relation whose query joins another table (`BelongsToMany`, `HasManyThrough`, `HasOneThrough`), bare column names in `select`, `sort`, `group` and `filter` are now qualified with the related table, or with the pivot table for a `BelongsToMany` pivot key or `withPivot()` column. Before, `select: ["id", "name"]` on such an include failed with "Column 'id' in field list is ambiguous", and an include with a `sort` or `filter` but no `select` returned the pivot or intermediate row's `id`, `created_at` and `updated_at` as the related model's. Relations without joins are unchanged.
+- With `allow_select_all` off, a table-qualified wildcard (`users.*`) is stripped like a bare `*`, and the primary-key fallback is qualified when the query has joins.
+
 ## [1.1.0] — 2026-04-07
 
 ### Added

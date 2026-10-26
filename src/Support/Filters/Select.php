@@ -6,6 +6,7 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Kalimulhaq\Qubuilder\Support\Helper;
 
 /**
@@ -62,9 +63,12 @@ class Select implements Arrayable
     /**
      * Apply the column selection to the builder.
      *
-     * When `qubuilder.allow_select_all` is disabled, the "*" wildcard is stripped
-     * and the selection falls back to the model's primary key only if no explicit
-     * columns remain — preventing unrestricted "SELECT *" queries.
+     * When `qubuilder.allow_select_all` is disabled, the "*" wildcard (bare or
+     * table-qualified, `users.*`) is stripped and the selection falls back to the
+     * model's primary key only if no explicit columns remain — preventing
+     * unrestricted "SELECT *" queries. The fallback key is qualified with the
+     * model's table when the query joins other tables, where a bare `id` would be
+     * ambiguous.
      *
      * @template TFilterModel of Model
      *
@@ -76,10 +80,11 @@ class Select implements Arrayable
         $columns = $this->columns;
 
         if (! Helper::allowSelectAll()) {
-            $columns = array_values(array_filter($columns, fn ($column) => $column !== '*'));
+            $columns = array_values(array_filter($columns, fn ($column) => $column !== '*' && ! Str::endsWith($column, '.*')));
 
             if (empty($columns)) {
-                $columns = [$builder->getModel()->getKeyName()];
+                $key = $builder->getModel()->getKeyName();
+                $columns = [empty($builder->getQuery()->joins) ? $key : $builder->qualifyColumn($key)];
             }
         }
 

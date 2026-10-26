@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Kalimulhaq\Qubuilder\Qubuilder;
+use Kalimulhaq\Qubuilder\Support\ColumnQualifier;
 use Kalimulhaq\Qubuilder\Support\Helper;
 
 /**
@@ -18,6 +19,11 @@ use Kalimulhaq\Qubuilder\Support\Helper;
  * (`count`, `avg`, `sum`, `min`, `max`) are also supported. Polymorphic
  * `MorphTo` relations are handled via `morphWith()` when the model exposes a
  * `{relation}Map()` method.
+ *
+ * Before an include's keys are applied to the relation's query, `ColumnQualifier`
+ * prefixes its column names with the right table when the relation joins another
+ * table (`BelongsToMany`, through relations). Otherwise bare names such as `id` are
+ * ambiguous, and an explicit `SELECT *` over the join returns the pivot row's keys.
  */
 class Includes
 {
@@ -94,7 +100,7 @@ class Includes
                                             Arr::set(
                                                 $morphWith, $morphClass.'.'.$inputInclude['name'],
                                                 /** @param  Relation<Model, Model, mixed>  $subBuilder */
-                                                fn (Relation $subBuilder) => Qubuilder::make($inputInclude, $subBuilder->getQuery())->query()
+                                                fn (Relation $subBuilder) => Qubuilder::make(ColumnQualifier::qualify($subBuilder, $inputInclude), $subBuilder->getQuery())->query()
                                             );
                                         }
                                     }
@@ -107,7 +113,7 @@ class Includes
                         } else {
                             if (! empty($commonFilters)) {
                                 /** @param  Relation<Model, Model, mixed>  $subBuilder */
-                                $builder->with([$name => fn (Relation $subBuilder) => Qubuilder::make($commonFilters, $subBuilder->getQuery())->query()]);
+                                $builder->with([$name => fn (Relation $subBuilder) => Qubuilder::make(ColumnQualifier::qualify($subBuilder, $commonFilters), $subBuilder->getQuery())->query()]);
                             } else {
                                 $builder->with([$name]);
                             }
