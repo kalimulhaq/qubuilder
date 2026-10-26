@@ -3,7 +3,6 @@
 namespace Kalimulhaq\Qubuilder\Support;
 
 use Closure;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
@@ -38,7 +37,7 @@ class ColumnQualifier
     /**
      * Qualify the column names in an include's filters for the given relation.
      *
-     * @param  Relation<Model, Model, mixed>  $relation  The relation being eager-loaded.
+     * @param  Relation<*, *, *>  $relation  The relation being eager-loaded (Larastan types the `with()` callback parameter with wildcards).
      * @param  array<string, mixed>  $filters  The include's `select`, `filter`, `sort`, `group`, ... keys.
      * @return array<string, mixed>
      */
