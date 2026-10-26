@@ -5,6 +5,7 @@ All notable changes to `qubuilder` will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- A dotted relation path in a `has` / `doesnthave` filter (`orders.items`, `listable.community`) is compiled one segment at a time. A `MorphTo` at any depth of the path is now limited to the morph types that define the nested relation, through the `{relation}Map()` keys or the morph map. Before, the path went to Laravel's nested `whereHas`, which ran the inner relation on every stored morph type and threw `Call to undefined method` on a type without it.
 - Documented and tested support for the HTTP `QUERY` method (RFC 10008). `GetCollectionRequest`, `GetResourceRequest` and `Qubuilder::makeFromRequest()` already read the JSON body and query string of a `QUERY` request. The README now recommends `QUERY` for list endpoints, and explains route registration and that a form-encoded body needs Symfony 7.4 or newer.
 
 ### Changed
