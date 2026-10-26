@@ -141,5 +141,21 @@ abstract class TestCase extends Orchestra
             $table->id();
             $table->morphs('attachable');
         });
+
+        Schema::create('roles', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->nullable();
+            $table->timestamps();
+        });
+
+        // The pivot carries its own id and timestamps on purpose: they clash with the
+        // `roles` columns and expose unqualified names in an include on `roles`.
+        Schema::create('role_user', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id');
+            $table->foreignId('role_id');
+            $table->integer('level')->nullable();
+            $table->timestamps();
+        });
     }
 }

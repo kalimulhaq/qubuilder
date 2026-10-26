@@ -2,7 +2,9 @@
 
 namespace Kalimulhaq\Qubuilder\Tests\Feature;
 
+use Illuminate\Support\Facades\DB;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Role;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\User;
 use Kalimulhaq\Qubuilder\Tests\TestCase;
 
@@ -92,6 +94,28 @@ class ConfigFlagsTest extends TestCase
             'select' => ['id'],
             'include' => [['name' => 'orders', 'select' => ['id', 'user_id']]],
         ])->assertOk();
+    }
+
+    public function test_qualified_wildcard_in_include_is_stripped_when_select_all_disabled(): void
+    {
+        // Inside an include on a joined relation the wildcard becomes `roles.*`; it must be
+        // stripped like a bare `*`, and the key fallback must be qualified to stay unambiguous.
+        config()->set('qubuilder.allow_select_all', false);
+
+        $user = User::create(['name' => 'Member']);
+        $user->roles()->attach(Role::create(['name' => 'r1'])->id);
+
+        DB::enableQueryLog();
+        $loaded = Qubuilder::make([
+            'select' => ['id'],
+            'include' => [['name' => 'roles', 'select' => ['roles.*']]],
+        ], User::class)->query()->first();
+        $sql = DB::getQueryLog()[1]['query'];
+        DB::disableQueryLog();
+
+        $this->assertStringContainsString('select "qubuilder_roles"."id"', $sql);
+        $this->assertStringNotContainsString('*', $sql);
+        $this->assertSame(1, $loaded->roles->first()->id);
     }
 
     public function test_defaults_are_unaffected_when_select_all_enabled(): void
