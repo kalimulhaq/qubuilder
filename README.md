@@ -99,7 +99,7 @@ return [
 
 > **Limit clamping:** Any `limit` value above `max` is silently clamped to `max`. Values of `0` or below are also clamped to `max` (not to `1` or the default), so sending `limit=0` returns `max` records.
 
-> **`allow_select_all`** (default `true`): leave enabled to keep the current behaviour where an omitted `select` returns all columns. Set to `false` to force clients to request explicit columns — `select` becomes required at the top level and inside every non-aggregate include, the `"*"` wildcard is rejected by validation, and if a query still reaches the builder without columns it selects the model's primary key only. Aggregate includes (`count`, `avg`, `sum`, `min`, `max`) are exempt since they select no columns.
+> **`allow_select_all`** (default `true`): leave enabled to keep the current behaviour where an omitted `select` returns all columns. Set to `false` to force clients to request explicit columns — `select` becomes required at the top level and inside every non-aggregate include, the `"*"` wildcard is rejected by validation (a table-qualified `users.*` is dropped by the builder as well), and if a query still reaches the builder without columns it selects the model's primary key only. Aggregate includes (`count`, `avg`, `sum`, `min`, `max`) are exempt since they select no columns.
 
 > **`allow_include`** (default `true`): leave enabled to allow relation eager-loading. Set to `false` to disable includes entirely — the `include` parameter is silently stripped from the request (no validation error) and the builder never loads relations, even nested ones.
 
@@ -943,6 +943,19 @@ All top-level filter keys (`select`, `group`, `filter`, `include`, `sort`, `page
         'sort'   => ['total' => 'desc'],
         'limit'  => 5,
     ],
+]
+```
+
+**Joined relations.** When the relation's query joins another table (`BelongsToMany`, `HasManyThrough`, `HasOneThrough`), bare column names in the include's `select`, `sort`, `group` and `filter` are qualified for you: the related table for its columns, the pivot table for a `BelongsToMany` pivot key or `withPivot()` column. So `id`, `created_at` and `updated_at` are never ambiguous, and a pivot column can be selected by its bare name. An omitted `select` means the related table's columns only. Names you already qualify (`roles.id`), `raw:` sorts and `raw` conditions are sent as they are.
+
+```php
+// users belongsToMany roles through role_user, withPivot('level')
+'include' => [
+    ['name' => 'roles', 'select' => ['id', 'name']],
+    // SELECT `roles`.`id`, `roles`.`name`, ...pivot columns... FROM `roles` INNER JOIN `role_user` ...
+
+    ['name' => 'roles', 'select' => ['id', 'level']],
+    // `level` is read from `role_user`; $user->roles[0]->level and ->pivot->level both work
 ]
 ```
 
