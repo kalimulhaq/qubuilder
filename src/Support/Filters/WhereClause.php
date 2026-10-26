@@ -25,6 +25,13 @@ use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
  * actually match. The types come from the model's `{relation}Map()` keys when it has
  * one, else from the registered morph map. When neither exists, `whereHasMorph('*', ...)`
  * is used and incompatible types are excluded inside the callback via `WHERE 0=1`.
+ *
+ * A dotted relation path (`listable.community`) is unrolled one segment at a time:
+ * `a.b has X` is compiled as `a has { b has X }`, so every segment goes through this
+ * class on its own model and a MorphTo at any depth gets the treatment above. Laravel's
+ * own nested `has()` would run the inner `has()` on every stored morph type and fail on
+ * a type that lacks the relation. The operator and count apply to the last segment and
+ * `doesnthave` becomes an outer `doesnthave` with an inner `has`, as Laravel does.
  */
 class WhereClause
 {
@@ -131,6 +138,10 @@ class WhereClause
      */
     private function whereHas(Builder $builder): Builder
     {
+        if ($this->isNestedPath()) {
+            return $this->unrollNestedPath($builder);
+        }
+
         if (is_iterable($this->value) && $this->isMorphToRelation($builder)) {
             return $this->applyAutoMorphQuery($builder, false);
         }
@@ -156,6 +167,10 @@ class WhereClause
      */
     private function whereDoesntHave(Builder $builder): Builder
     {
+        if ($this->isNestedPath()) {
+            return $this->unrollNestedPath($builder);
+        }
+
         if (is_iterable($this->value) && $this->isMorphToRelation($builder)) {
             return $this->applyAutoMorphQuery($builder, true);
         }
@@ -171,6 +186,55 @@ class WhereClause
         $method = $or ? 'orDoesntHave' : 'doesntHave';
 
         return $builder->{$method}($this->field);
+    }
+
+    /**
+     * Whether `$this->field` is a dotted relation path (`orders.items`, `listable.community`).
+     */
+    private function isNestedPath(): bool
+    {
+        return is_string($this->field) && str_contains($this->field, '.');
+    }
+
+    /**
+     * Compile a dotted `has`/`doesnthave` path as nested single-segment clauses.
+     *
+     * `a.b.c has X` becomes `a has { b.c has X }`; the tail is compiled by a new
+     * `WhereClause` on the related model, which unrolls it again until one segment is
+     * left. The outer clause keeps this clause's conjunction. The rewrite mirrors
+     * Laravel's `hasNested()`: the operator and count belong to the last segment, every
+     * outer segment is `>= 1`, and a does-not-have path (`doesnthave`, or `has|<` with
+     * a count of 1) is an outer `doesnthave` around an inner `has`.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     * @return Builder<TFilterModel>
+     */
+    private function unrollNestedPath(Builder $builder): Builder
+    {
+        [$head, $tail] = explode('.', $this->field, 2);
+
+        $doesntHave = $this->op === 'doesnthave'
+            || (! is_iterable($this->value) && $this->subOp === '<' && (int) $this->value === 1);
+
+        if ($doesntHave) {
+            $inner = is_iterable($this->value)
+                ? ['field' => $tail, 'op' => 'has', 'value' => $this->value]
+                : ['field' => $tail, 'op' => 'has|>=', 'value' => 1];
+        } elseif (is_iterable($this->value)) {
+            $inner = ['field' => $tail, 'op' => 'has', 'value' => $this->value];
+        } else {
+            $inner = ['field' => $tail, 'op' => 'has|'.$this->subOp, 'value' => $this->value];
+        }
+
+        $outer = [
+            'field' => $head,
+            'op' => $doesntHave ? 'doesnthave' : 'has',
+            'value' => ['AND' => [$inner]],
+        ];
+
+        return (new WhereClause($outer, $this->conjunction))->build($builder);
     }
 
     /**
@@ -421,7 +485,9 @@ class WhereClause
      * Recursively collect relation names from `has`/`doesnthave` conditions in a filter array.
      *
      * Recurses into AND/OR groups but stops at `has` sub-filter values — those belong
-     * to a deeper model and are irrelevant to the current morph type check.
+     * to a deeper model and are irrelevant to the current morph type check. A dotted
+     * field contributes its first segment only: that is the relation the morph type
+     * itself must have; the rest is checked on the next model when the path unrolls.
      *
      * @return array<int, string>
      */
@@ -440,8 +506,8 @@ class WhereClause
 
             if (isset($condition['field'])) {
                 $primaryOp = explode('|', strtolower($condition['op'] ?? '='))[0];
-                if (in_array($primaryOp, ['has', 'doesnthave'], true)) {
-                    $relations[] = $condition['field'];
+                if (in_array($primaryOp, ['has', 'doesnthave'], true) && is_string($condition['field'])) {
+                    $relations[] = Str::before($condition['field'], '.');
                 }
             } else {
                 // AND / OR group — recurse into it

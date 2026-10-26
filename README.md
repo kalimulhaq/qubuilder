@@ -814,6 +814,23 @@ Omitting the sub-operator defaults to `=`:
 // ->whereDoesntHave('orders', fn($q) => $q->where('status', 'cancelled'))
 ```
 
+**Nested relations** use a dotted path. The package compiles it one segment at a time, so `orders.items` becomes `orders has { items has {...} }`: one `EXISTS` per segment, the sub-filter and any count on the last one.
+
+```php
+[
+    'field' => 'orders.items',
+    'op'    => 'has',
+    'value' => ['AND' => [['field' => 'qty', 'op' => '>', 'value' => 5]]],
+]
+// ->whereHas('orders', fn($q) => $q->whereHas('items', fn($q) => $q->where('qty', '>', 5)))
+
+['field' => 'orders.items', 'op' => 'doesnthave']
+// ->whereDoesntHave('orders', fn($q) => $q->has('items'))
+// users with no order that has an item (an order without items still qualifies)
+```
+
+A dotted path may cross a polymorphic relation (`listable.community`). See [Polymorphic Relations (MorphTo)](#polymorphic-relations-morphto) for how the morph types are chosen.
+
 ---
 
 ### Multi-Column — `any` / `all` / `none`
@@ -1028,6 +1045,19 @@ public function commentableMap(): array
 ```
 
 The same map limits which types a `has` / `doesnthave` filter on the `MorphTo` searches. Only the map keys are used: `commentable has {...}` builds a sub-query for `post` and `video` only, even when other models sit in `Relation::morphMap()`. Without a map, every class of the morph map is considered, as before. This matters when two morph types share a relation name but point at different tables, so a nested filter fits one and not the other.
+
+A dotted `has` / `doesnthave` path through the `MorphTo` gets the same treatment at every segment. `commentable.author has {...}` builds a sub-query only for the map types that define `author()`: `post` here, since `Video` has no such relation. Laravel's own nested `whereHas('commentable.author', ...)` would run `author()` on every stored type and fail with `Call to undefined method Video::author()`.
+
+```php
+[
+    'field' => 'commentable.author',
+    'op'    => 'has',
+    'value' => ['AND' => [['field' => 'name', 'op' => '=', 'value' => 'Ann']]],
+]
+// ->whereHasMorph('commentable', [Post::class], fn($q) => $q->whereHas('author', fn($q) => $q->where('name', 'Ann')))
+```
+
+The `MorphTo` may sit at any depth of the path (`comments.commentable.author`). Without a map and without `Relation::morphMap()`, the types are read from the stored `_type` column and a type that lacks the relation matches no rows.
 
 ---
 

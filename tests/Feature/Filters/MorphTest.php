@@ -312,6 +312,113 @@ class MorphTest extends TestCase
         $this->assertEqualsCanonicalizing(['post', 'podcast'], $attachments->pluck('attachable_type')->all());
     }
 
+    // ── WHERE has on a dotted path through a MorphTo ──────────────────────────
+
+    public function test_where_has_dotted_path_through_morph_skips_types_without_the_relation(): void
+    {
+        // Laravel's own nested has() runs `has('author')` on every stored type and fails
+        // with "Call to undefined method Video::author()". The package unrolls the path
+        // and uses the relation map, so Video gets no sub-query at all.
+        $this->registerMorphMap();
+        $this->seedCommentsByAuthor();
+
+        $query = Qubuilder::make([
+            'filter' => [[
+                'field' => 'commentable.author',
+                'op' => 'has',
+                'value' => ['AND' => [['field' => 'name', 'op' => '=', 'value' => 'Ann']]],
+            ]],
+        ], Comment::class)->query();
+
+        $this->assertStringNotContainsString('videos', $query->toSql());
+        $this->assertSame(['by Ann'], $query->get()->pluck('body')->all());
+    }
+
+    public function test_where_has_dotted_path_through_morph_with_count_form(): void
+    {
+        $this->registerMorphMap();
+        $this->seedCommentsByAuthor();
+
+        $comments = Qubuilder::make([
+            'filter' => [['field' => 'commentable.author', 'op' => 'has|>=', 'value' => 1]],
+        ], Comment::class)->query()->get();
+
+        $this->assertSame(['by Ann', 'by Bob'], $comments->pluck('body')->all());
+    }
+
+    public function test_where_doesnt_have_dotted_path_through_morph(): void
+    {
+        $this->registerMorphMap();
+        $this->seedCommentsByAuthor();
+
+        $query = Qubuilder::make([
+            'filter' => [[
+                'field' => 'commentable.author',
+                'op' => 'doesnthave',
+                'value' => ['AND' => [['field' => 'name', 'op' => '=', 'value' => 'Ann']]],
+            ]],
+        ], Comment::class)->query();
+
+        $this->assertStringContainsString('not exists', $query->toSql());
+        $this->assertSame(['by Bob'], $query->get()->pluck('body')->all());
+    }
+
+    public function test_where_has_dotted_path_without_any_map_guards_types_without_the_relation(): void
+    {
+        // No morphMap and no attachableMap(): the '*' path is used, and the Video type
+        // (no `author` relation) is excluded inside the callback with `0 = 1`.
+        $ann = User::create(['name' => 'Ann']);
+        $post = Post::create(['title' => 'P', 'author_id' => $ann->id]);
+        $video = Video::create(['title' => 'V']);
+
+        foreach ([$post, $video] as $attachable) {
+            $attachment = new Attachment;
+            $attachment->attachable()->associate($attachable)->save();
+        }
+
+        $query = Qubuilder::make([
+            'filter' => [[
+                'field' => 'attachable.author',
+                'op' => 'has',
+                'value' => ['AND' => [['field' => 'name', 'op' => '=', 'value' => 'Ann']]],
+            ]],
+        ], Attachment::class)->query();
+
+        $this->assertStringContainsString('0 = 1', $query->toSql());
+        $this->assertSame([Post::class], $query->get()->pluck('attachable_type')->all());
+    }
+
+    public function test_where_has_dotted_path_with_morph_as_second_segment(): void
+    {
+        // The MorphTo is the second segment: Post -> comments -> commentable -> author.
+        // Each segment is compiled on its own model, so the morph handling applies there too.
+        $this->registerMorphMap();
+        $this->seedCommentsByAuthor();
+
+        $posts = Qubuilder::make([
+            'filter' => [[
+                'field' => 'comments.commentable.author',
+                'op' => 'has',
+                'value' => ['AND' => [['field' => 'name', 'op' => '=', 'value' => 'Ann']]],
+            ]],
+        ], Post::class)->query()->get();
+
+        $this->assertSame(['By Ann'], $posts->pluck('title')->all());
+    }
+
+    /**
+     * One comment on a post by Ann, one on a post by Bob, one on a video (no `author` relation).
+     */
+    private function seedCommentsByAuthor(): void
+    {
+        $ann = User::create(['name' => 'Ann']);
+        $bob = User::create(['name' => 'Bob']);
+
+        Post::create(['title' => 'By Ann', 'author_id' => $ann->id])->comments()->create(['body' => 'by Ann']);
+        Post::create(['title' => 'By Bob', 'author_id' => $bob->id])->comments()->create(['body' => 'by Bob']);
+        Video::create(['title' => 'Clip', 'channel_id' => $ann->id])->comments()->create(['body' => 'on video']);
+    }
+
     private function reactTo(Model $reactable): Reaction
     {
         $reaction = new Reaction;
