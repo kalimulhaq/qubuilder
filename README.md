@@ -829,7 +829,15 @@ Omitting the sub-operator defaults to `=`:
 // users with no order that has an item (an order without items still qualifies)
 ```
 
-A dotted path may cross a polymorphic relation (`listable.community`). See [Polymorphic Relations (MorphTo)](#polymorphic-relations-morphto) for how the morph types are chosen.
+A dotted path may cross a polymorphic relation (`commentable.author`). See [Polymorphic Relations (MorphTo)](#polymorphic-relations-morphto) for how the morph types are chosen.
+
+**Joined relations.** On a relation whose query joins another table (`BelongsToMany`, `HasManyThrough`, `HasOneThrough`), the columns of a `has` / `doesnthave` sub-filter are qualified for you, with the same rule as [joined includes](#with-sub-filters): `id`, `created_at` and `updated_at` mean the related model's, and a column that only the pivot or intermediate table has is read from there.
+
+```php
+['field' => 'roles', 'op' => 'has', 'value' => ['AND' => [['field' => 'id', 'op' => '=', 'value' => 3]]]]
+// ... exists (select * from `roles` inner join `role_user` ... and `roles`.`id` = ?)
+// a bare `id` would be ambiguous: `role_user` has its own id
+```
 
 ---
 
@@ -963,7 +971,13 @@ All top-level filter keys (`select`, `group`, `filter`, `include`, `sort`, `page
 ]
 ```
 
-**Joined relations.** When the relation's query joins another table (`BelongsToMany`, `HasManyThrough`, `HasOneThrough`), bare column names in the include's `select`, `sort`, `group` and `filter` are qualified for you: the related table for its columns, the pivot table for a `BelongsToMany` pivot key or `withPivot()` column. So `id`, `created_at` and `updated_at` are never ambiguous, and a pivot column can be selected by its bare name. An omitted `select` means the related table's columns only. Names you already qualify (`roles.id`), `raw:` sorts and `raw` conditions are sent as they are.
+**Joined relations.** When the relation's query joins another table (`BelongsToMany`, `HasManyThrough`, `HasOneThrough`), bare column names in the include's `select`, `sort`, `group` and `filter` are qualified for you:
+
+- A `BelongsToMany` pivot key or `withPivot()` column goes to the pivot table.
+- A column the related table has goes to the related table, also when the pivot or intermediate table has one with the same name. So `id`, `created_at` and `updated_at` are never ambiguous and mean the related model's.
+- A column only the pivot or intermediate table has goes to that table: an undeclared pivot column, or an intermediate column such as `status` on `orders` under a `user -> orders -> items` through relation.
+
+Columns are read from the database schema, once per table and connection. An omitted `select` means the related table's columns only. Names you already qualify (`roles.id`), `raw:` sorts and `raw` conditions are sent as they are.
 
 ```php
 // users belongsToMany roles through role_user, withPivot('level')
@@ -991,7 +1005,7 @@ All top-level filter keys (`select`, `group`, `filter`, `include`, `sort`, `page
 
 ### Aggregate Includes
 
-Set `aggregate` to compute a value instead of loading records. For `avg`, `sum`, `min`, `max` you must also set `field`.
+Set `aggregate` to compute a value instead of loading records. For `avg`, `sum`, `min`, `max` you must also set `field`. An aggregate's `filter` on a joined relation is qualified like any other [joined include](#with-sub-filters).
 
 | `aggregate` | Result attribute | `field` |
 |------------|-----------------|---------|
