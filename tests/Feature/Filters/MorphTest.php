@@ -11,6 +11,7 @@ use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Podcast;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Post;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Profile;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Reaction;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Role;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\User;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Video;
 use Kalimulhaq\Qubuilder\Tests\TestCase;
@@ -139,7 +140,7 @@ class MorphTest extends TestCase
 
     public function test_include_morph_with_fqcn_keys_and_registered_morph_map(): void
     {
-        // Mirrors engage/core: a morph map is enforced (type stored as an alias) while
+        // A common app setup: a morph map is enforced (type stored as an alias) while
         // the model's {relation}Map() is keyed by FQCN. The FQCN key must still resolve.
         $this->registerMorphMap();
 
@@ -417,6 +418,35 @@ class MorphTest extends TestCase
         Post::create(['title' => 'By Ann', 'author_id' => $ann->id])->comments()->create(['body' => 'by Ann']);
         Post::create(['title' => 'By Bob', 'author_id' => $bob->id])->comments()->create(['body' => 'by Bob']);
         Video::create(['title' => 'Clip', 'channel_id' => $ann->id])->comments()->create(['body' => 'on video']);
+    }
+
+    public function test_has_inside_a_morph_has_qualifies_a_joined_relation_sub_filter(): void
+    {
+        // attachable has { roles has { id = 3 } }: `roles` joins role_user, which has its own id.
+        Relation::morphMap(['user' => User::class, 'post' => Post::class], false);
+
+        Role::create(['name' => 'r1']);
+        Role::create(['name' => 'r2']);
+        $member = User::create(['name' => 'Member']);
+        $member->roles()->attach(Role::create(['name' => 'r3'])->id);
+
+        $onMember = new Attachment;
+        $onMember->attachable()->associate($member)->save();
+        (new Attachment)->attachable()->associate(Post::create(['title' => 'P']))->save();
+
+        $attachments = Qubuilder::make([
+            'filter' => [[
+                'field' => 'attachable',
+                'op' => 'has',
+                'value' => ['and' => [[
+                    'field' => 'roles',
+                    'op' => 'has',
+                    'value' => ['and' => [['field' => 'id', 'value' => 3]]],
+                ]]],
+            ]],
+        ], Attachment::class)->query()->get();
+
+        $this->assertSame([$onMember->id], $attachments->pluck('id')->all());
     }
 
     private function reactTo(Model $reactable): Reaction

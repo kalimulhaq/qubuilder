@@ -155,6 +155,7 @@ abstract class TestCase extends Orchestra
             $table->foreignId('user_id');
             $table->foreignId('role_id');
             $table->integer('level')->nullable();
+            $table->string('granted_by')->nullable(); // a pivot column not declared with withPivot()
             $table->timestamps();
         });
 
