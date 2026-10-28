@@ -2,6 +2,21 @@
 
 All notable changes to `qubuilder` will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- A `has` / `doesnthave` filter on a `MorphTo` is narrowed by an `=` or `in` condition on the relation's type column (`bookmarkable_type = Article`, bare or table-qualified) in the same AND group or an enclosing one. An OR group of such conditions on that column counts as one `in`; a type condition that is an OR alternative to the `has` does not narrow it. Values match the morph alias or class name case-insensitively, a value that matches no known type turns the narrowing off, and a class name from the request is never used to build a sub-query.
+- `Where` and `WhereClause` take an optional third constructor parameter, `$context`, that carries those column values down the filter tree. It defaults to empty, so existing calls are unchanged.
+
+### Changed
+- Without a `{relation}Map()`, a `has` / `doesnthave` on a `MorphTo` searches only the morph map types that rows actually store, found with one `SELECT DISTINCT` on the type column (the query Laravel's `whereHasMorph('*')` runs). Results are the same; the query has fewer sub-queries. Define a `{relation}Map()` to skip the extra query.
+
+### Fixed
+- A `has` / `doesnthave` on a `MorphTo` no longer builds a sub-query for a morph type that cannot run the sub-filter. Each type is checked against the whole sub-filter, at every nesting level: nested relations must exist on the model they run on, and every column must exist in the related table, the `BelongsToMany` pivot or the through relation's intermediate table. Before, only the first level was checked, so two types that share a relation name but reach different tables made MySQL fail with "Unknown column".
+- The column check reads the database schema, once per table and connection, instead of `$fillable`. Before, a real column left out of `$fillable` (such as `company_id`) dropped the type, and its rows silently went missing.
+- A `has` on a `MorphTo` for which no type is eligible matches no rows, and a `doesnthave` matches every row, also when an OR condition follows it. Before, the filter was skipped, so a `has` matched every row.
+- An `any` / `all` / `none` condition inside a `has` sub-filter on a `MorphTo` no longer throws a `TypeError`, and a `raw` condition there is no longer checked as a column name.
+
 ## [1.3.3] — 2026-10-26
 
 ### Fixed

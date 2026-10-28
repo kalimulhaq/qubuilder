@@ -157,5 +157,45 @@ abstract class TestCase extends Orchestra
             $table->integer('level')->nullable();
             $table->timestamps();
         });
+
+        // Morph type narrowing: three types share the relation name `topics`, but only
+        // `article_topics` has `subject_id` and only the `course_topic` pivot has `level`.
+        Schema::create('bookmarks', function (Blueprint $table) {
+            $table->id();
+            $table->nullableMorphs('bookmarkable');
+            $table->string('note')->nullable();
+        });
+
+        foreach (['articles', 'courses', 'albums'] as $name) {
+            Schema::create($name, function (Blueprint $table) {
+                $table->id();
+                $table->string('title')->nullable();
+            });
+        }
+
+        Schema::create('article_topics', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('article_id');
+            $table->integer('subject_id')->nullable();
+            $table->integer('weight')->nullable();
+        });
+
+        Schema::create('topics', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->nullable();
+        });
+
+        // No `id` of its own, like most pivots: a bare `id` in a `topics` sub-filter stays unambiguous.
+        Schema::create('course_topic', function (Blueprint $table) {
+            $table->foreignId('course_id');
+            $table->foreignId('topic_id');
+            $table->integer('level')->nullable();
+        });
+
+        Schema::create('album_topics', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('album_id');
+            $table->string('label')->nullable();
+        });
     }
 }

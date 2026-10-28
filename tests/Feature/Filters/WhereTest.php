@@ -285,6 +285,26 @@ class WhereTest extends TestCase
 
     // ── Structure: AND / OR / nesting ────────────────────────────────────────
 
+    public function test_and_group_with_equals_and_in_conditions_keeps_its_sql_without_a_morph_relation(): void
+    {
+        // The `=` / `in` conditions of an AND group are passed down as context for a morph
+        // `has`; without a MorphTo they must not change the query at all.
+        $query = $this->builder(['and' => [
+            ['field' => 'status', 'value' => 'active'],
+            ['field' => 'role', 'op' => 'in', 'value' => ['a', 'b']],
+            ['or' => [['field' => 'type', 'value' => 'x'], ['field' => 'type', 'value' => 'y']]],
+            ['field' => 'orders', 'op' => 'has', 'value' => ['and' => [['field' => 'status', 'value' => 'paid']]]],
+        ]]);
+
+        $this->assertSame(
+            'select * from "qubuilder_users" where (("status" = ? and "role" in (?, ?) and (("type" = ? or "type" = ?)) '
+            .'and exists (select * from "qubuilder_orders" where "qubuilder_users"."id" = "qubuilder_orders"."user_id" '
+            .'and (("status" = ?))))) and "qubuilder_users"."deleted_at" is null',
+            $query->toSql()
+        );
+        $this->assertSame(['active', 'a', 'b', 'x', 'y', 'paid'], $query->getBindings());
+    }
+
     public function test_flat_list_is_implicit_and(): void
     {
         $sql = $this->sql([
