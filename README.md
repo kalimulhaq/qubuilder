@@ -1057,7 +1057,37 @@ public function commentableMap(): array
 }
 ```
 
-The same map limits which types a `has` / `doesnthave` filter on the `MorphTo` searches. Only the map keys are used: `commentable has {...}` builds a sub-query for `post` and `video` only, even when other models sit in `Relation::morphMap()`. Without a map, every class of the morph map is considered, as before. This matters when two morph types share a relation name but point at different tables, so a nested filter fits one and not the other.
+#### Which types a `has` / `doesnthave` searches
+
+A `has` or `doesnthave` filter on a `MorphTo` builds one sub-query per morph type. When two types share a relation name but reach different tables, a sub-filter that fits one type is invalid SQL for the other, and MySQL rejects the whole query ("Unknown column"). So the package chooses the types before it builds the query:
+
+1. **Candidates.** With a `{relation}Map()`, only its keys: `commentable has {...}` searches `post` and `video`, even when other models sit in `Relation::morphMap()`. Without a map, the classes of the morph map that rows actually store in the `_type` column, found with one `SELECT DISTINCT` (the query Laravel's own `whereHasMorph('*')` runs). Without a morph map either, every stored type is searched, as before.
+2. **Type condition.** An `=` or `in` condition on the relation's type column (`bookmarkable_type`, or the table-qualified `bookmarks.bookmarkable_type`) in the same AND group, or in an enclosing AND group, narrows the candidates to those types. An OR group of such conditions on that column counts as one `in`. Values match the morph alias or the class name the way MySQL compares them: case-insensitive, trailing spaces ignored. A value that matches no candidate turns the narrowing off, and a class name from the request is never used to build a sub-query. A type condition that is an OR alternative to the `has` (`type = X OR has {...}`) does not narrow it.
+3. **Check.** Each type must be able to run the whole sub-filter: every nested `has` names a relation of the model it runs on (including relations added with `resolveRelationUsing()`), and every column exists in a table it is read from: the related table, the pivot of a `BelongsToMany`, or the intermediate table of a `HasManyThrough` / `HasOneThrough`. Columns come from the database schema, read once per table and connection, not from `$fillable`, which usually leaves out real columns. A table whose columns cannot be read keeps the type.
+4. **No eligible type.** A `has` matches no rows and a `doesnthave` matches every row.
+
+Example, with `bookmarkable` pointing at `Article`, `Course` and `Album`, which all define `topics()`: on an article it reaches `article_topics`, which has `subject_id`; on a course it goes through the `course_topic` pivot, and on an album it reaches `album_topics`, and neither has `subject_id`.
+
+```php
+[
+    'AND' => [
+        ['field' => 'bookmarkable_type', 'op' => '=', 'value' => 'Article'],
+        [
+            'field' => 'bookmarkable',
+            'op'    => 'has',
+            'value' => ['AND' => [[
+                'field' => 'topics',
+                'op'    => 'has',
+                'value' => ['AND' => [['field' => 'subject_id', 'op' => 'in', 'value' => [1]]]],
+            ]]],
+        ],
+    ],
+]
+// Builds a sub-query for Article only. Without the type condition the check drops Course and
+// Album as well, because their topics tables have no subject_id column.
+```
+
+Define a `{relation}Map()` to skip the `SELECT DISTINCT`, and send the type condition when the client already knows the type: it is the cheapest way to narrow.
 
 A dotted `has` / `doesnthave` path through the `MorphTo` gets the same treatment at every segment. `commentable.author has {...}` builds a sub-query only for the map types that define `author()`: `post` here, since `Video` has no such relation. Laravel's own nested `whereHas('commentable.author', ...)` would run `author()` on every stored type and fail with `Call to undefined method Video::author()`.
 
