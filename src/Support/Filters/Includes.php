@@ -58,8 +58,10 @@ class Includes
 
             if (! empty($name)) {
                 $commonFilters = Arr::only($include, ['select', 'filter', 'include', 'sort', 'group', 'page', 'limit']);
-                $aggregateFilter = $include['filter'] ?? null;
                 $aggregate = $include['aggregate'] ?? null;
+                $aggregateFilter = $aggregate === null
+                    ? null
+                    : self::qualifiedAggregateFilter($model, $name, $include['filter'] ?? null);
                 $field = $include['field'] ?? null;
 
                 // Scope the aggregate sub-query by its `filter` only — applying the full
@@ -125,5 +127,28 @@ class Includes
         }
 
         return $builder;
+    }
+
+    /**
+     * An aggregate include's `filter` with its column names qualified for the relation.
+     *
+     * The aggregate sub-query of a relation that joins another table (a `BelongsToMany`
+     * pivot, a through relation's intermediate table) makes a bare `id` ambiguous.
+     * `ColumnQualifier` prefixes the right table; a relation without joins is unchanged.
+     * When the relation cannot be built, the filter is returned as it is.
+     */
+    private static function qualifiedAggregateFilter(Model $model, string $name, mixed $filter): mixed
+    {
+        if (! is_array($filter)) {
+            return $filter;
+        }
+
+        try {
+            $relation = $model->{$name}();
+        } catch (\Throwable) {
+            return $filter;
+        }
+
+        return $relation instanceof Relation ? ColumnQualifier::qualifyFilter($relation, $filter) : $filter;
     }
 }

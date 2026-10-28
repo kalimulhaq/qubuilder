@@ -5,8 +5,10 @@ namespace Kalimulhaq\Qubuilder\Support\Filters;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Kalimulhaq\Qubuilder\Support\ColumnQualifier;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
 use Kalimulhaq\Qubuilder\Support\MorphTypeResolver;
 
@@ -26,7 +28,7 @@ use Kalimulhaq\Qubuilder\Support\MorphTypeResolver;
  * that cannot run the sub-filter is excluded inside the callback via `WHERE 0 = 1`.
  * When no type is eligible, a `has` matches no rows and a `doesnthave` matches all.
  *
- * A dotted relation path (`listable.community`) is unrolled one segment at a time:
+ * A dotted relation path (`commentable.author`) is unrolled one segment at a time:
  * `a.b has X` is compiled as `a has { b has X }`, so every segment goes through this
  * class on its own model and a MorphTo at any depth gets the treatment above. Laravel's
  * own nested `has()` would run the inner `has()` on every stored morph type and fail on
@@ -160,8 +162,9 @@ class WhereClause
 
         if (is_iterable($this->value)) {
             $method = $or ? 'orWhereHas' : 'whereHas';
+            $value = $this->qualifiedSubFilter($builder);
 
-            return $builder->{$method}($this->field, fn (Builder $sub) => Qubuilder::make(['filter' => $this->value], $sub)->query());
+            return $builder->{$method}($this->field, fn (Builder $sub) => Qubuilder::make(['filter' => $value], $sub)->query());
         }
 
         $method = $or ? 'orHas' : 'has';
@@ -189,8 +192,9 @@ class WhereClause
 
         if (is_iterable($this->value)) {
             $method = $or ? 'orWhereDoesntHave' : 'whereDoesntHave';
+            $value = $this->qualifiedSubFilter($builder);
 
-            return $builder->{$method}($this->field, fn (Builder $sub) => Qubuilder::make(['filter' => $this->value], $sub)->query());
+            return $builder->{$method}($this->field, fn (Builder $sub) => Qubuilder::make(['filter' => $value], $sub)->query());
         }
 
         $method = $or ? 'orDoesntHave' : 'doesntHave';
@@ -199,7 +203,31 @@ class WhereClause
     }
 
     /**
-     * Whether `$this->field` is a dotted relation path (`orders.items`, `listable.community`).
+     * The `has` / `doesnthave` sub-filter with its column names qualified for the relation.
+     *
+     * On a relation whose existence query joins another table (a `BelongsToMany` pivot, a
+     * through relation's intermediate table), a bare `id` or `created_at` is ambiguous.
+     * `ColumnQualifier` prefixes the right table; a relation without joins is unchanged.
+     * When the relation cannot be built, the filter is returned as it is and the `whereHas`
+     * call reports the problem as Laravel always has.
+     *
+     * @template TFilterModel of Model
+     *
+     * @param  Builder<TFilterModel>  $builder
+     */
+    private function qualifiedSubFilter(Builder $builder): mixed
+    {
+        try {
+            $relation = $builder->getModel()->{$this->field}();
+        } catch (\Throwable) {
+            return $this->value;
+        }
+
+        return $relation instanceof Relation ? ColumnQualifier::qualifyFilter($relation, $this->value) : $this->value;
+    }
+
+    /**
+     * Whether `$this->field` is a dotted relation path (`orders.items`, `commentable.author`).
      */
     private function isNestedPath(): bool
     {

@@ -4,6 +4,8 @@ namespace Kalimulhaq\Qubuilder\Support;
 
 use Closure;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 
@@ -18,10 +20,14 @@ use Illuminate\Support\Str;
  *
  * Rules, applied to `select` entries (a missing select counts as `*`), `sort` keys,
  * `group` entries and the `field` of every `filter` condition:
- * - `BelongsToMany`: a pivot key or a `withPivot()` column gets the pivot table;
- *   every other column, and `*`, gets the related table. `created_at` and
- *   `updated_at` go to the related table; the pivot's stay reachable as `pivot.*`.
- * - Any other relation whose query has joins: the related table.
+ * - A pivot key or a `withPivot()` column gets the pivot table.
+ * - A column the related table has gets the related table, also when the pivot or
+ *   intermediate table has it too: `id`, `created_at` and `updated_at` mean the
+ *   related model's (the pivot's stay reachable as `pivot.*`). `*` does too.
+ * - A column only the pivot or intermediate table has gets that table, so an
+ *   undeclared pivot column or an intermediate column keeps working.
+ * - When the schema cannot be read, the related table, as before. Columns are read
+ *   once per table and connection (`TableColumns`).
  * - A relation without joins: the filters are returned unchanged.
  *
  * Left as they are: an entry that already contains a dot, a `raw:` sort, a `raw`
@@ -30,7 +36,10 @@ use Illuminate\Support\Str;
  * path (`settings->theme`) or a `column as alias` pair. The `field` operator compares
  * two columns, so its value is qualified too.
  *
- * @internal Used by `Includes`; not part of the public API.
+ * `qualify()` handles an include's keys; `qualifyFilter()` handles a filter tree alone,
+ * for a `has` / `doesnthave` sub-filter and an aggregate include's `filter`.
+ *
+ * @internal Used by `Includes` and `WhereClause`; not part of the public API.
  */
 class ColumnQualifier
 {
@@ -43,36 +52,11 @@ class ColumnQualifier
      */
     public static function qualify(Relation $relation, array $filters): array
     {
-        $related = $relation->getRelated();
-        $pivotTable = null;
-        $pivotColumns = [];
+        $qualify = self::columnQualifier($relation);
 
-        if ($relation instanceof BelongsToMany) {
-            $pivotTable = $relation->getTable();
-            $pivotColumns = array_diff(
-                array_merge(
-                    [$relation->getForeignPivotKeyName(), $relation->getRelatedPivotKeyName()],
-                    $relation->getPivotColumns()
-                ),
-                [$relation->createdAt(), $relation->updatedAt()]
-            );
-        } elseif (empty($relation->getQuery()->getQuery()->joins)) {
+        if ($qualify === null) {
             return $filters;
         }
-
-        $qualify = function (string $column) use ($related, $pivotTable, $pivotColumns): string {
-            [$name, $alias] = self::splitAlias($column);
-
-            if (! self::isPlainColumn($name)) {
-                return $column;
-            }
-
-            $qualified = $pivotTable !== null && in_array(Str::before($name, '->'), $pivotColumns, true)
-                ? $pivotTable.'.'.$name
-                : $related->qualifyColumn($name);
-
-            return $alias === null ? $qualified : $qualified.' as '.$alias;
-        };
 
         // A missing or empty select means `*` (see `Select`), which must become `table.*`
         // here: a bare `*` over the join returns the pivot row's keys as the model's.
@@ -88,10 +72,88 @@ class ColumnQualifier
         }
 
         if (isset($filters['filter']) && is_array($filters['filter'])) {
-            $filters['filter'] = self::qualifyFilter($filters['filter'], $qualify);
+            $filters['filter'] = self::qualifyFilterTree($filters['filter'], $qualify);
         }
 
         return $filters;
+    }
+
+    /**
+     * Qualify the column names of a filter tree for the given relation.
+     *
+     * Used for a `has` / `doesnthave` sub-filter and an aggregate include's `filter`: the
+     * same rule as `qualify()`, without the `select` default only an include needs. A
+     * relation without joins returns the filter unchanged.
+     *
+     * @param  Relation<*, *, *>  $relation  The relation the filter runs on.
+     */
+    public static function qualifyFilter(Relation $relation, mixed $filter): mixed
+    {
+        $qualify = self::columnQualifier($relation);
+
+        return $qualify === null ? $filter : self::qualifyFilterTree($filter, $qualify);
+    }
+
+    /**
+     * The function that qualifies one column name for the relation, or null without joins.
+     *
+     * The join table is the pivot of a `BelongsToMany` or the intermediate table of a
+     * `HasManyThrough` / `HasOneThrough`. A column goes to:
+     * 1. the pivot table when it is a pivot key or a `withPivot()` column;
+     * 2. the related table when that table has it (it also wins when both tables do, so
+     *    `created_at` and `updated_at` mean the related model's);
+     * 3. the join table when only that table has it (an undeclared pivot column, an
+     *    intermediate column such as `orders.status` under `items`);
+     * 4. the related table when the schema cannot be read, as before.
+     * Columns are read from the schema once per table and connection (`TableColumns`).
+     *
+     * @param  Relation<*, *, *>  $relation
+     * @return (Closure(string): string)|null
+     */
+    private static function columnQualifier(Relation $relation): ?Closure
+    {
+        $related = $relation->getRelated();
+        $joinTable = null;
+        $pivotColumns = [];
+
+        if ($relation instanceof BelongsToMany) {
+            $joinTable = $relation->getTable();
+            $pivotColumns = array_diff(
+                array_merge(
+                    [$relation->getForeignPivotKeyName(), $relation->getRelatedPivotKeyName()],
+                    $relation->getPivotColumns()
+                ),
+                [$relation->createdAt(), $relation->updatedAt()]
+            );
+        } elseif ($relation instanceof HasManyThrough || $relation instanceof HasOneThrough) {
+            // HasOneThrough extends HasManyThrough on Laravel 11.0 and a shared base class later.
+            $joinTable = $relation->getParent()->getTable();
+        } elseif (empty($relation->getQuery()->getQuery()->joins)) {
+            return null;
+        }
+
+        $connection = $related->getConnection();
+        $relatedTable = $related->getTable();
+
+        return function (string $column) use ($connection, $relatedTable, $joinTable, $pivotColumns): string {
+            [$name, $alias] = self::splitAlias($column);
+
+            if (! self::isPlainColumn($name)) {
+                return $column;
+            }
+
+            $base = Str::before($name, '->');
+
+            $table = match (true) {
+                $joinTable !== null && in_array($base, $pivotColumns, true) => $joinTable,
+                $name === '*', $joinTable === null => $relatedTable,
+                TableColumns::has($connection, $relatedTable, $base) !== false => $relatedTable,
+                TableColumns::has($connection, $joinTable, $base) === true => $joinTable,
+                default => $relatedTable,
+            };
+
+            return $table.'.'.$name.($alias === null ? '' : ' as '.$alias);
+        };
     }
 
     /**
@@ -136,7 +198,7 @@ class ColumnQualifier
      *
      * @param  Closure(string): string  $qualify
      */
-    private static function qualifyFilter(mixed $filter, Closure $qualify): mixed
+    private static function qualifyFilterTree(mixed $filter, Closure $qualify): mixed
     {
         if (! is_array($filter)) {
             return $filter;
@@ -147,7 +209,7 @@ class ColumnQualifier
         }
 
         foreach ($filter as $key => $item) {
-            $filter[$key] = self::qualifyFilter($item, $qualify);
+            $filter[$key] = self::qualifyFilterTree($item, $qualify);
         }
 
         return $filter;

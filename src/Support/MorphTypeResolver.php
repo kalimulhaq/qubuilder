@@ -2,7 +2,6 @@
 
 namespace Kalimulhaq\Qubuilder\Support;
 
-use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -10,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
-use WeakMap;
 
 /**
  * Chooses the morph types a `has` / `doesnthave` filter on a `MorphTo` should search.
@@ -36,7 +34,7 @@ use WeakMap;
  *    every nested `has` names a relation of the model it runs on, and every column
  *    exists in the table it is read from.
  *
- * Columns are read from the database schema, once per table and connection, because
+ * Columns are read from the database schema (`TableColumns`), once per table and connection, because
  * `$fillable` usually leaves out real columns (`company_id`, audit columns) and would
  * drop a valid type. A check that cannot decide keeps the type.
  *
@@ -44,14 +42,6 @@ use WeakMap;
  */
 class MorphTypeResolver
 {
-    /**
-     * Lower-cased column names per table, per connection; null when they could not be read.
-     * Each value is an `array<string, array<int, string>|null>` keyed by table name.
-     *
-     * @var WeakMap<Connection, mixed>|null
-     */
-    private static ?WeakMap $columns = null;
-
     /**
      * The model classes to search for a morph `has`, or null when no type is known.
      *
@@ -335,47 +325,11 @@ class MorphTypeResolver
         }
 
         foreach ($tables as $table) {
-            $columns = self::columnsOf($model->getConnection(), $table);
-
-            if ($columns === null || in_array(Str::lower($column), $columns, true)) {
+            if (TableColumns::has($model->getConnection(), $table, $column) !== false) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    /**
-     * The lower-cased column names of a table, read once per connection, or null if unknown.
-     *
-     * The cache is keyed by the connection object, so a new connection (a new test, a
-     * reconnect) reads the schema again. An empty listing (no such table) or a failed read
-     * returns null, which keeps the type.
-     *
-     * @return array<int, string>|null
-     */
-    private static function columnsOf(Connection $connection, string $table): ?array
-    {
-        if (self::$columns === null) {
-            /** @var WeakMap<Connection, mixed> $map */
-            $map = new WeakMap;
-            self::$columns = $map;
-        }
-
-        /** @var array<string, array<int, string>|null> $tables */
-        $tables = self::$columns[$connection] ?? [];
-
-        if (! array_key_exists($table, $tables)) {
-            try {
-                $listing = $connection->getSchemaBuilder()->getColumnListing($table);
-                $tables[$table] = $listing === [] ? null : array_map(fn (string $name) => Str::lower($name), $listing);
-            } catch (\Throwable) {
-                $tables[$table] = null;
-            }
-
-            self::$columns->offsetSet($connection, $tables);
-        }
-
-        return $tables[$table];
     }
 }

@@ -4,6 +4,8 @@ namespace Kalimulhaq\Qubuilder\Tests\Feature\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 use Kalimulhaq\Qubuilder\Support\Facades\Qubuilder;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Order;
+use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\Role;
 use Kalimulhaq\Qubuilder\Tests\Fixtures\Models\User;
 use Kalimulhaq\Qubuilder\Tests\TestCase;
 
@@ -442,5 +444,102 @@ class WhereTest extends TestCase
         ], User::class)->query()->pluck('name')->all();
 
         $this->assertSame(['Empty', 'None'], $names);
+    }
+
+    // ── Sub-filters on joined relations: columns are qualified ──────────────
+
+    public function test_has_on_a_belongs_to_many_qualifies_an_id_shared_with_the_pivot(): void
+    {
+        // `role_user` has its own `id`, so a bare `id` in the sub-filter was ambiguous.
+        [$member] = $this->usersWithRoles();
+
+        $query = $this->builder([['field' => 'roles', 'op' => 'has', 'value' => ['and' => [['field' => 'id', 'value' => 3]]]]]);
+
+        $this->assertStringContainsString('"qubuilder_roles"."id" = ?', $query->toSql());
+        $this->assertSame([$member->id], $query->pluck('id')->all());
+    }
+
+    public function test_doesnthave_on_a_belongs_to_many_qualifies_created_at(): void
+    {
+        [$member, $guest] = $this->usersWithRoles();
+
+        $query = $this->builder([['field' => 'roles', 'op' => 'doesnthave', 'value' => ['and' => [['field' => 'created_at', 'op' => 'null']]]]]);
+
+        $this->assertStringContainsString('"qubuilder_roles"."created_at" is null', $query->toSql());
+        $this->assertSame([$member->id, $guest->id], $query->orderBy('id')->pluck('id')->all());
+    }
+
+    public function test_has_on_a_through_relation_qualifies_id_and_keeps_intermediate_columns(): void
+    {
+        // `items` goes through `orders`: `id` is on both tables, `status` only on orders.
+        $buyer = User::create(['name' => 'Buyer']);
+        Order::create(['user_id' => $buyer->id, 'status' => 'open']);
+        Order::create(['user_id' => $buyer->id, 'status' => 'paid'])->items()->create(['qty' => 1]);
+        User::create(['name' => 'Browser']);
+
+        $query = $this->builder([['field' => 'items', 'op' => 'has', 'value' => ['and' => [
+            ['field' => 'id', 'op' => '>=', 'value' => 1],
+            ['field' => 'status', 'value' => 'paid'],
+        ]]]]);
+
+        $this->assertStringContainsString('"qubuilder_items"."id" >= ?', $query->toSql());
+        $this->assertStringContainsString('"qubuilder_orders"."status" = ?', $query->toSql());
+        $this->assertSame([$buyer->id], $query->pluck('id')->all());
+    }
+
+    public function test_has_nested_inside_a_has_qualifies_the_inner_sub_filter(): void
+    {
+        // roles has { users has { id = ... } }: the inner relation (Role::users) joins role_user too.
+        [$member] = $this->usersWithRoles();
+
+        $query = $this->builder([['field' => 'roles', 'op' => 'has', 'value' => ['and' => [[
+            'field' => 'users',
+            'op' => 'has',
+            'value' => ['and' => [['field' => 'id', 'value' => $member->id]]],
+        ]]]]]);
+
+        $this->assertStringContainsString('"qubuilder_users"."id" = ?', $query->toSql());
+        $this->assertSame([$member->id], $query->pluck('id')->all());
+    }
+
+    public function test_has_on_a_belongs_to_many_reads_pivot_columns_from_the_pivot(): void
+    {
+        // `level` is declared with withPivot(), `granted_by` is not; both live on role_user.
+        [$member] = $this->usersWithRoles();
+        $member->roles()->updateExistingPivot(3, ['granted_by' => 'admin']);
+
+        $query = $this->builder([['field' => 'roles', 'op' => 'has', 'value' => ['and' => [
+            ['field' => 'level', 'value' => 2],
+            ['field' => 'granted_by', 'value' => 'admin'],
+        ]]]]);
+
+        $this->assertStringContainsString('"qubuilder_role_user"."level" = ?', $query->toSql());
+        $this->assertStringContainsString('"qubuilder_role_user"."granted_by" = ?', $query->toSql());
+        $this->assertSame([$member->id], $query->pluck('id')->all());
+    }
+
+    public function test_has_on_a_relation_without_joins_keeps_its_sql(): void
+    {
+        $sql = $this->sql([['field' => 'orders', 'op' => 'has', 'value' => ['and' => [['field' => 'id', 'value' => 1]]]]]);
+
+        $this->assertStringContainsString('"qubuilder_users"."id" = "qubuilder_orders"."user_id" and (("id" = ?))', $sql);
+    }
+
+    /**
+     * A member whose only role is the third one (pivot id 1, role id 3, level 2), and a guest
+     * with no role.
+     *
+     * @return array{0: User, 1: User}
+     */
+    private function usersWithRoles(): array
+    {
+        Role::create(['name' => 'r1']);
+        Role::create(['name' => 'r2']);
+        $third = Role::create(['name' => 'r3']);
+
+        $member = User::create(['name' => 'Member']);
+        $member->roles()->attach($third->id, ['level' => 2]);
+
+        return [$member, User::create(['name' => 'Guest'])];
     }
 }

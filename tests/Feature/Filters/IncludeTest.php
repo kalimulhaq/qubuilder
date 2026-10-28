@@ -254,6 +254,90 @@ class IncludeTest extends TestCase
         $this->assertStringContainsString('order by "id" asc', $sql);
     }
 
+    public function test_aggregate_filter_on_a_belongs_to_many_qualifies_an_id_shared_with_the_pivot(): void
+    {
+        $this->userWithThirdRole();
+
+        $loaded = Qubuilder::make([
+            'include' => [[
+                'name' => 'roles',
+                'aggregate' => 'count',
+                'filter' => ['and' => [['field' => 'id', 'value' => 3]]],
+            ]],
+        ], User::class)->query()->first();
+
+        $this->assertSame(1, (int) $loaded->roles_count);
+    }
+
+    public function test_aggregate_filter_on_a_through_relation_qualifies_an_id_shared_with_the_intermediate_table(): void
+    {
+        $user = $this->userWithItemOnThirdOrder();
+
+        $loaded = Qubuilder::make([
+            'include' => [[
+                'name' => 'items',
+                'aggregate' => 'sum',
+                'field' => 'qty',
+                'filter' => ['and' => [['field' => 'id', 'op' => '>=', 'value' => 1]]],
+            ]],
+        ], User::class)->query()->find($user->id);
+
+        $this->assertSame(4, (int) $loaded->items_sum_qty);
+    }
+
+    public function test_include_on_a_through_relation_filters_and_sorts_on_an_intermediate_column(): void
+    {
+        // `status` is an orders column. Since 1.3.3 every column of a joined include was sent to
+        // the related table (items.status) and the query failed.
+        $this->userWithItemOnThirdOrder();
+
+        $sql = $this->eagerLoadSql(['include' => [[
+            'name' => 'items',
+            'filter' => ['and' => [['field' => 'status', 'value' => 'paid']]],
+            'sort' => ['status' => 'asc'],
+        ]]]);
+        $loaded = Qubuilder::make(['include' => [[
+            'name' => 'items',
+            'filter' => ['and' => [['field' => 'status', 'value' => 'paid']]],
+            'sort' => ['status' => 'asc'],
+        ]]], User::class)->query()->first();
+
+        $this->assertStringContainsString('"qubuilder_orders"."status" = ?', $sql);
+        $this->assertStringContainsString('order by "qubuilder_orders"."status" asc', $sql);
+        $this->assertSame([4], $loaded->items->pluck('qty')->map(fn ($qty) => (int) $qty)->all());
+    }
+
+    public function test_include_filter_on_an_undeclared_pivot_column_reads_the_pivot_table(): void
+    {
+        $user = $this->userWithThirdRole();
+        $user->roles()->updateExistingPivot(3, ['granted_by' => 'admin']);
+
+        $sql = $this->eagerLoadSql(['include' => [[
+            'name' => 'roles',
+            'filter' => ['and' => [['field' => 'granted_by', 'value' => 'admin']]],
+        ]]]);
+
+        $this->assertStringContainsString('"qubuilder_role_user"."granted_by" = ?', $sql);
+        $this->assertSame([3], Qubuilder::make(['include' => [[
+            'name' => 'roles',
+            'filter' => ['and' => [['field' => 'granted_by', 'value' => 'admin']]],
+        ]]], User::class)->query()->first()->roles->pluck('id')->all());
+    }
+
+    /**
+     * A user with three orders; only the third (status paid) has an item, with qty 4.
+     * The item's id (1) differs from its order's id (3).
+     */
+    private function userWithItemOnThirdOrder(): User
+    {
+        $user = User::create(['name' => 'Buyer']);
+        Order::create(['user_id' => $user->id, 'status' => 'open']);
+        Order::create(['user_id' => $user->id, 'status' => 'open']);
+        Order::create(['user_id' => $user->id, 'status' => 'paid'])->items()->create(['qty' => 4]);
+
+        return $user;
+    }
+
     /**
      * A user whose only role is the third one, so the pivot row id (1) differs from the role id (3).
      */
@@ -282,6 +366,7 @@ class IncludeTest extends TestCase
         DB::disableQueryLog();
         DB::flushQueryLog();
 
-        return $queries[1]['query'];
+        // The eager-load query runs last; a schema read for column qualification may come first.
+        return end($queries)['query'];
     }
 }
